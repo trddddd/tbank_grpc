@@ -1,0 +1,15 @@
+# frozen_string_literal: true
+
+source 'https://rubygems.org'
+
+gemspec
+
+group :development, :test do
+  gem 'bundler'
+  gem 'rake'
+  gem 'rspec'
+  gem 'rspec-mocks'
+  gem 'vcr'
+  gem 'webmock'
+  gem 'pry'
+end

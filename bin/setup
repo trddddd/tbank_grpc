@@ -1,0 +1,16 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require 'fileutils'
+
+def system!(*args)
+  system(*args) || abort("Command failed: #{args.join(' ')}")
+end
+
+FileUtils.mkdir_p('tmp')
+
+puts '==> Installing dependencies...'
+system!('bundle install')
+
+puts "\n==> Setup complete."
+puts "    Run 'bundle exec rake compile_proto' after adding .proto files to proto/."
