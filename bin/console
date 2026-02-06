@@ -4,5 +4,12 @@
 require 'bundler/setup'
 require 'tbank_grpc'
 
-require 'irb'
-IRB.start
+TbankGrpc.configure do |config|
+  config.token = ENV.fetch('TBANK_TOKEN')
+  config.app_name = 'trddddd.tbank_grpc'
+  config.sandbox = true
+  config.timeout = 30
+end
+
+require 'pry'
+Pry.start

@@ -3,6 +3,9 @@
 RSpec.describe TbankGrpc do
   it 'has a version number' do
     expect(TbankGrpc::VERSION).to be_a(String)
+  end
+
+  it 'has a non-empty version' do
     expect(TbankGrpc::VERSION).not_to be_empty
   end
 
