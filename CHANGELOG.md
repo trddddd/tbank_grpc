@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.3] - 2026-02-17
+
+### Added
+- Базовый RPC-слой: BaseService, error_handler, deadline_resolver, rate_limit_handler, response, tracking_id
+- Конвертеры: constants, enum, money, quotation, timestamp
+- Модели: assets, instruments (bond, coupon, dividend, future, share и др.), schedules, value objects (money, quotation, units_nano), serialization/pretty_print
+- InstrumentsService и подсервисы: assets, corporate_actions, derivatives, listings, lookup, schedules
+- Хелперы: facade, instruments_helper, market_data_helper; proto_loader, formatters (inspectable_value)
+- CI: workflow proto_check; документация yard в docs/yard.md
+
+### Changed
+- Клиент и точка входа: подключение InstrumentsService, загрузка proto
+- Proto-файлы (сгенерированные), README, Rakefile
+
 ## [0.1.2] - 2026-02-17
 
 ### Added

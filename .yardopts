@@ -1,0 +1,6 @@
+# YARD options: https://yardoc.org/guides/options.html
+--markup markdown
+--title "tbank_grpc API"
+lib/**/*.rb
+--exclude lib/tbank_grpc/proto/
+--no-private

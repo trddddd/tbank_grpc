@@ -126,3 +126,13 @@ RSpec::Core::RakeTask.new(:spec) do |task|
   task.pattern = 'spec/**/*_spec.rb'
   task.rspec_opts = '--color --format progress'
 end
+
+begin
+  require 'yard'
+  YARD::Rake::YardocTask.new(:doc)
+rescue LoadError
+  desc 'Generate YARD documentation (requires yard gem)'
+  task :doc do
+    abort 'yard is not installed. Run: bundle install'
+  end
+end

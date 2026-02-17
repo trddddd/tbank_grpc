@@ -1,29 +1,59 @@
 # frozen_string_literal: true
 
 module TbankGrpc
+  # Конфигурация клиента: токен, эндпоинт, таймауты, SSL, логирование.
+  # Задаётся через {TbankGrpc.configure} или при создании {Client}.
   class Configuration
-    # Core settings
+    # @!attribute [rw] token
+    #   @return [String, nil] OAuth-токен T-Bank Invest API
+    # @!attribute [rw] sandbox
+    #   @return [Boolean] использовать sandbox (по умолчанию false)
+    # @!attribute [rw] app_name
+    #   @return [String] имя приложения (обязательно)
+    # @!attribute [rw] endpoint
+    #   @return [String, nil] host:port (по умолчанию берётся из sandbox)
     attr_accessor :token, :sandbox, :app_name, :endpoint
 
-    # Timeouts & retries
+    # @!attribute [rw] timeout
+    #   @return [Integer, Float] общий таймаут в секундах (по умолчанию 30)
+    # @!attribute [rw] retry_attempts
+    #   @return [Integer] число повторов при rate limit (по умолчанию 3)
+    # @!attribute [rw] enable_retries
+    #   @return [Boolean] включить gRPC retry по UNAVAILABLE
+    # @!attribute [rw] deadline_overrides
+    #   @return [Hash] переопределение дедлайнов по сервису/методу (секунды)
     attr_accessor :timeout, :retry_attempts, :enable_retries, :deadline_overrides
 
-    # Streaming
+    # @!attribute [rw] stream_idle_timeout
+    # @!attribute [rw] stream_watchdog_interval_sec
     attr_accessor :stream_idle_timeout, :stream_watchdog_interval_sec
 
-    # Channel settings
+    # @!attribute [rw] channel_pool_size
+    #   @return [Integer] размер пула каналов (по умолчанию 1)
+    # @!attribute [rw] max_message_size
+    #   @return [Integer] макс. размер сообщения в байтах (по умолчанию 50MB)
     attr_accessor :channel_pool_size, :max_message_size
 
-    # Connection tuning
+    # @!attribute [rw] keepalive_time_ms
+    # @!attribute [rw] keepalive_timeout_ms
+    # @!attribute [rw] max_connection_idle_ms
+    # @!attribute [rw] max_connection_age_ms
     attr_accessor :keepalive_time_ms, :keepalive_timeout_ms,
                   :max_connection_idle_ms, :max_connection_age_ms
 
-    # SSL
+    # @!attribute [rw] cert_path
+    #   @return [String, nil] путь к PEM сертификата или :system
+    # @!attribute [rw] insecure
+    #   @return [Boolean] отключить SSL (только для отладки)
     attr_accessor :cert_path, :insecure
 
-    # Logging
+    # @!attribute [rw] log_level
+    #   @return [Symbol] :debug, :info, :warn, :error
+    # @!attribute [rw] logger
+    #   @return [Logger, nil] кастомный логгер
     attr_accessor :log_level, :logger
 
+    # Создаёт конфигурацию с дефолтными значениями.
     def initialize
       # Core
       @token = nil
@@ -60,10 +90,12 @@ module TbankGrpc
       @logger = nil
     end
 
+    # @return [Logger] логгер (по умолчанию stdout с префиксом [TbankGrpc])
     def logger
       @logger ||= setup_default_logger
     end
 
+    # @return [Hash] конфигурация в виде Hash (для передачи в клиент/канал)
     def to_h
       {
         token: @token,
@@ -106,7 +138,10 @@ module TbankGrpc
     end
   end
 
+  # Обёртка логгера с префиксом [TbankGrpc] и поддержкой keyword-аргументов.
+  # @api private
   class LoggerWrapper
+    # @param logger [Logger]
     def initialize(logger)
       @logger = logger
     end
@@ -122,18 +157,25 @@ module TbankGrpc
   end
 
   class << self
+    # @return [Configuration, nil]
     attr_accessor :configuration
 
+    # Глобальная настройка. Блок опционален.
+    # @yield [configuration] блок для установки полей конфигурации
+    # @return [Configuration]
     def configure
       self.configuration ||= Configuration.new
       yield(configuration) if block_given?
       configuration
     end
 
+    # Сбрасывает конфигурацию к дефолтам.
+    # @return [Configuration]
     def reset_configuration
       @configuration = Configuration.new
     end
 
+    # @return [Logger] логгер из текущей конфигурации
     def logger
       configuration.logger
     end
