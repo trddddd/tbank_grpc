@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.2] - 2026-02-17
 
 ### Added
+- Proto-файлы контрактов T-Bank Invest API в `proto/`, сгенерированные `*_pb.rb` в `lib/tbank_grpc/proto/`
+- Rake-задачи: `download_proto`, `compile_proto`, `clean_proto`, `autoupdate_proto`
 - Документация по SSL-сертификатам: `docs/ssl_certificates.md`
 - Перехватчики `Logging`, `Metadata` (вместо отдельных Auth/AppName/LoggingInterceptor)
 - В конфигурации: опции `cert_path`, `insecure` для SSL
@@ -18,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `ChannelManager`: рефакторинг работы с каналами — вынесение создания канала в `build_credentials`, `build_channel_args`, `retry_config`; создание через `ChannelCredentials` (системные или из файла), поддержка `insecure`; единая настройка keepalive, размера сообщений, retry
 - `Client`: сбор перехватчиков через `Interceptors::Metadata` и `Interceptors::Logging` вместо удалённых Auth/AppName/LoggingInterceptor
 - Структура перехватчиков (interceptors/logging.rb, interceptors/metadata.rb)
+- `docs/setup.md`: актуальные шаги по proto (загрузка через rake, компиляция, требование grpc-tools)
 
 ### Removed
 - Отдельные перехватчики: Auth, AppName, LoggingInterceptor
