@@ -29,6 +29,5 @@ jobs:
 
       - name: Regenerate proto and check diff
         run: |
-          bundle exec rake clean_proto
           bundle exec rake autoupdate_proto
           git diff --exit-code lib/tbank_grpc/proto/

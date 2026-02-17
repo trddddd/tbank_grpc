@@ -102,7 +102,7 @@ task compile_proto: :check_protoc do
     puts "Compiling #{File.basename(proto_file)}..."
 
     system(
-      'grpc_tools_ruby_protoc',
+      'bundle', 'exec', 'grpc_tools_ruby_protoc',
       '-I', PROTO_DIR,
       '--ruby_out', output_dir,
       '--grpc_out', output_dir,

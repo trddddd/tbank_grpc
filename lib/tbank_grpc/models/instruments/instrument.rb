@@ -54,9 +54,9 @@ module TbankGrpc
           @model_cache
         end
 
-        def self.synchronize_model_cache(&block)
+        def self.synchronize_model_cache(&)
           @model_cache_mutex ||= Mutex.new
-          @model_cache_mutex.synchronize(&block)
+          @model_cache_mutex.synchronize(&)
         end
         private_class_method :synchronize_model_cache
 

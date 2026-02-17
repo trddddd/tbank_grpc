@@ -35,6 +35,7 @@ Gem::Specification.new do |spec|
 
   spec.add_development_dependency 'bundler'
   spec.add_development_dependency 'grpc-tools', '~> 1.60'
+  spec.add_development_dependency 'irb'
   spec.add_development_dependency 'pry'
   spec.add_development_dependency 'rake', '~> 13.0'
   spec.add_development_dependency 'rdoc', '~> 6.6'
@@ -48,5 +49,4 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency 'webmock', '~> 3.19'
   spec.add_development_dependency 'webrick', '~> 1.8'
   spec.add_development_dependency 'yard', '~> 0.9'
-  spec.add_development_dependency 'irb'
 end
