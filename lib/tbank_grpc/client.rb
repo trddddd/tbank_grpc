@@ -28,6 +28,16 @@ module TbankGrpc
       @channel_manager.close
     end
 
+    # Пересоздаёт канал и кэш сервисов после close. Нужен только если канал был явно закрыт.
+    # В обычной работе gRPC сам переподключается;
+    def reconnect
+      close
+
+      @channel_manager = ChannelManager.new(@config)
+
+      TbankGrpc.logger.info('TbankGrpc client reconnected')
+    end
+
     private
 
     def merge_and_validate_config(user_config)
@@ -49,9 +59,8 @@ module TbankGrpc
 
     def build_interceptors
       [
-        Interceptors::AuthInterceptor.new(@config[:token]),
-        Interceptors::AppNameInterceptor.new(@config[:app_name]),
-        Interceptors::LoggingInterceptor.new
+        Interceptors::Metadata.new(token: @config[:token], app_name: @config[:app_name]),
+        Interceptors::Logging.new
       ]
     end
   end

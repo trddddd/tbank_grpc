@@ -34,3 +34,6 @@ Thumbs.db
 .env
 .env.*
 certs/*.key
+certs/*.cer
+certs/*.crt
+certs/ca_bundle.crt

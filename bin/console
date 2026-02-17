@@ -3,13 +3,45 @@
 
 require 'bundler/setup'
 require 'tbank_grpc'
+require 'pry'
+
+CERT_BUNDLE = File.expand_path('../certs/ca_bundle.crt', __dir__)
 
 TbankGrpc.configure do |config|
   config.token = ENV.fetch('TBANK_TOKEN')
   config.app_name = 'trddddd.tbank_grpc'
   config.sandbox = true
+  config.log_level = :debug
   config.timeout = 30
+  if File.exist?(CERT_BUNDLE)
+    config.cert_path = CERT_BUNDLE
+  else
+    config.insecure = true
+  end
 end
 
-require 'pry'
+def client
+  @client ||= TbankGrpc::Client.new
+end
+
+def reload!
+  TbankGrpc.reload
+  puts 'TbankGrpc reloaded.'
+end
+
+def use_certs!
+  if File.exist?(CERT_BUNDLE)
+    TbankGrpc.configuration.cert_path = CERT_BUNDLE
+    TbankGrpc.configuration.insecure = false
+
+    puts 'Серты включены. Пересоздай клиент: client.close; @client = nil'
+  else
+    puts "Не найден: #{CERT_BUNDLE}"
+  end
+end
+
+at_exit do
+  client.close
+end
+
 Pry.start
