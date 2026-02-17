@@ -90,7 +90,8 @@ module TbankGrpc
 
         # Сериализация свечи в Hash.
         #
-        # @param precision [Symbol, nil] формат цен (open/high/low/close): nil — Float, :big_decimal/:decimal — BigDecimal
+        # @param precision [Symbol, nil] формат цен (open/high/low/close):
+        #   nil — Float, :big_decimal/:decimal — BigDecimal
         # @return [Hash]
         def to_h(precision: nil)
           return {} unless @pb
@@ -112,7 +113,7 @@ module TbankGrpc
         #
         # @return [Boolean]
         def valid?
-          has_identifier? && has_required_fields? && valid_ohlc_relationship?
+          identifier? && required_fields? && valid_ohlc_relationship?
         end
 
         private
@@ -125,16 +126,16 @@ module TbankGrpc
           [open, high, low, close].map { |v| v&.public_send(converter) }
         end
 
-        def has_identifier?
+        def identifier?
           figi.to_s != '' || instrument_uid.to_s != ''
         end
 
-        def has_required_fields?
+        def required_fields?
           [time, open, high, low, close].all?
         end
 
         def valid_ohlc_relationship?
-          return true unless has_required_fields?
+          return true unless required_fields?
 
           high_val = high.to_d
           low_val = low.to_d

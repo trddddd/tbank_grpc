@@ -5,7 +5,7 @@
 > [!WARNING]
 > Это не production-ready решение. Использование — на свой страх и риск :)
 
-Ruby-клиент для [T-Bank Invest API](https://developer.tbank.ru/invest/api). Обертка над gRPC API для алгоритмической торговли, доступа к рыночным данным и управления портфелем.
+Ruby-клиент для [T-Bank Invest API](https://developer.tbank.ru/invest/intro/intro). Обертка над gRPC API для алгоритмической торговли, доступа к рыночным данным и управления портфелем.
 
 ## Быстрый старт
 
@@ -136,6 +136,7 @@ margin = client.instruments.get_futures_margin(instrument_id: future.uid)
 **Активы** — данные по эмитенту (активу). В API это два разных UID: **instrument_uid** (бумага) и **asset_uid** (эмитент/актив). Для `get_asset_by` / `get_asset_fundamentals` нужен именно `asset_uid` из инструмента. Пример по Сбербанку:
 
 ```ruby
+sber = client.instruments.get_instrument_by(id_type: :figi, id: "BBG004730N88")
 # Инструмент (акция Сбера) и UID актива
 asset_uid = sber.asset_uid
 
@@ -160,4 +161,6 @@ reports = client.instruments.get_asset_reports(
 > **Модели и вывод в консоли**  
 > В консоли (inspect / pretty_print) у моделей показываются только **часть полей** — выбранные для краткого отображения. Все поля: **`to_h`** или **`attributes`**. Для свечей и стакана: `to_h(precision: :big_decimal)` / `to_a(precision: :big_decimal)` — цены (open, high, low, close и т.д.) в виде **BigDecimal** вместо Float.
 
-Подробнее: [Setup](docs/setup.md), [Configuration](docs/configuration.md). Документация API (YARD): `bundle exec rake doc`, просмотр — `bundle exec yard server` ([docs/yard.md](docs/yard.md)).
+Подробнее: [Setup](docs/setup.md), [Configuration](docs/configuration.md). 
+
+Документация API (YARD): `bundle exec rake doc`, просмотр — `bundle exec yard server` ([docs/yard.md](docs/yard.md)).

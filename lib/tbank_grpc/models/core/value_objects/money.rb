@@ -46,11 +46,11 @@ module TbankGrpc
           end
 
           def initialize(units:, nano:, currency:)
+            units = units.to_i
+            nano = nano.to_i
+            currency = currency.to_s
             validate!(units, nano)
-            @units = units
-            @nano = nano
-            @currency = currency
-            freeze
+            super
           end
 
           def value

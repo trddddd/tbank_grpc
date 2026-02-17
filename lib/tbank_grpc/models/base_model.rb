@@ -18,12 +18,12 @@ module TbankGrpc
 
       # Преобразование protobuf в Hash.
       #
-      # @param pb [Google::Protobuf::MessageExts, nil]
+      # @param proto [Google::Protobuf::MessageExts, nil]
       # @return [Hash]
-      def pb_to_h(pb = @pb)
-        return {} unless pb
+      def pb_to_h(proto = @pb)
+        return {} unless proto
 
-        Core::ProtobufToHash.pb_message_to_h(pb)
+        Core::ProtobufToHash.pb_message_to_h(proto)
       end
 
       # Сериализация текущего объекта в Hash.
@@ -83,8 +83,8 @@ module TbankGrpc
 
       private
 
-      def timestamp_to_time(ts)
-        TbankGrpc::Converters::Timestamp.to_time(ts)
+      def timestamp_to_time(timestamp)
+        TbankGrpc::Converters::Timestamp.to_time(timestamp)
       end
     end
   end

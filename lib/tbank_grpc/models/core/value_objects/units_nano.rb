@@ -41,17 +41,17 @@ module TbankGrpc
             end
 
             # Согласование знаков units/nano (google.type.Money)
-            def apply_sign_consistency(u, n)
-              u = u.to_i
-              n = n.to_i
-              if u.positive? && n.negative?
-                u -= 1
-                n += NANO_INT
-              elsif u.negative? && n.positive?
-                u += 1
-                n -= NANO_INT
+            def apply_sign_consistency(units, nano)
+              units = units.to_i
+              nano = nano.to_i
+              if units.positive? && nano.negative?
+                units -= 1
+                nano += NANO_INT
+              elsif units.negative? && nano.positive?
+                units += 1
+                nano -= NANO_INT
               end
-              [u, n]
+              [units, nano]
             end
           end
 
@@ -67,18 +67,18 @@ module TbankGrpc
 
           private
 
-          def apply_sign_consistency(u, n)
-            UnitsNano.apply_sign_consistency(u, n)
+          def apply_sign_consistency(units, nano)
+            UnitsNano.apply_sign_consistency(units, nano)
           end
 
           def add_units_nano(other)
-            u, n = UnitsNano.normalize_units_nano(units + other.units, nano + other.nano)
-            UnitsNano.apply_sign_consistency(u, n)
+            normalized_units, normalized_nano = UnitsNano.normalize_units_nano(units + other.units, nano + other.nano)
+            UnitsNano.apply_sign_consistency(normalized_units, normalized_nano)
           end
 
           def subtract_units_nano(other)
-            u, n = UnitsNano.normalize_units_nano(units - other.units, nano - other.nano)
-            UnitsNano.apply_sign_consistency(u, n)
+            normalized_units, normalized_nano = UnitsNano.normalize_units_nano(units - other.units, nano - other.nano)
+            UnitsNano.apply_sign_consistency(normalized_units, normalized_nano)
           end
         end
       end

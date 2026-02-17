@@ -26,9 +26,8 @@ module TbankGrpc
       text = grpc_message.to_s.strip
       text = details if text.empty?
       code = details.to_s.strip
-      if code.match?(/\A\d+\z/) && !text.empty? && text != code
-        "#{text} (#{code})"
-      elsif text != code && !code.empty?
+
+      if !code.empty? && text != code
         "#{text} (#{code})"
       else
         text

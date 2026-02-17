@@ -37,10 +37,10 @@ module TbankGrpc
           end
 
           def initialize(units: 0, nano: 0)
-            @units = units.to_i
-            @nano = nano.to_i
-            validate!
-            freeze
+            units = units.to_i
+            nano = nano.to_i
+            validate!(units, nano)
+            super
           end
 
           def to_s
@@ -115,7 +115,7 @@ module TbankGrpc
 
           private
 
-          def validate!
+          def validate!(units, nano)
             unless nano.abs <= NANO_MAX
               raise ArgumentError,
                     "nano must be in [-#{NANO_MAX}, #{NANO_MAX}], got: #{nano}"

@@ -3,22 +3,24 @@
 require 'spec_helper'
 
 RSpec.describe TbankGrpc::Models::MarketData::Candle do
-  Timestamp = Struct.new(:seconds, :nanos, keyword_init: true)
-  QuotationProto = Struct.new(:units, :nano, keyword_init: true)
-  CandleProto = Struct.new(
-    :figi, :instrument_uid, :time, :open, :high, :low, :close, :volume, :is_complete,
-    keyword_init: true
-  )
+  let(:timestamp_proto_class) { Struct.new(:seconds, :nanos, keyword_init: true) }
+  let(:quotation_proto_class) { Struct.new(:units, :nano, keyword_init: true) }
+  let(:candle_proto_class) do
+    Struct.new(
+      :figi, :instrument_uid, :time, :open, :high, :low, :close, :volume, :is_complete,
+      keyword_init: true
+    )
+  end
 
   let(:proto) do
-    CandleProto.new(
+    candle_proto_class.new(
       figi: nil,
       instrument_uid: 'BBG004730N88',
-      time: Timestamp.new(seconds: 1_707_750_000, nanos: 0),
-      open: QuotationProto.new(units: 306, nano: 150_000_000),
-      high: QuotationProto.new(units: 306, nano: 290_000_000),
-      low: QuotationProto.new(units: 305, nano: 350_000_000),
-      close: QuotationProto.new(units: 305, nano: 800_000_000),
+      time: timestamp_proto_class.new(seconds: 1_707_750_000, nanos: 0),
+      open: quotation_proto_class.new(units: 306, nano: 150_000_000),
+      high: quotation_proto_class.new(units: 306, nano: 290_000_000),
+      low: quotation_proto_class.new(units: 305, nano: 350_000_000),
+      close: quotation_proto_class.new(units: 305, nano: 800_000_000),
       volume: 1_936_617,
       is_complete: true
     )

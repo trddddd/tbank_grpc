@@ -127,8 +127,6 @@ module TbankGrpc
         options[:return_op] = true if return_metadata
 
         stub.public_send(method_name, request, **options)
-      rescue GRPC::BadStatus
-        raise
       end
 
       def extract_tracking_id(grpc_error)
@@ -136,9 +134,9 @@ module TbankGrpc
         raw.nil? ? 'unknown' : raw.to_s
       end
 
-      def extract_response_metadata(op)
-        headers = op&.metadata || {}
-        trailers = op&.trailing_metadata || {}
+      def extract_response_metadata(operation)
+        headers = operation&.metadata || {}
+        trailers = operation&.trailing_metadata || {}
         merged = headers.merge(trailers) { |_k, _a, b| b }
 
         {

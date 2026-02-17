@@ -38,7 +38,7 @@ module TbankGrpc
     # @return [Services::UsersService]
     def users
       @users ||= Services::UsersService.new(
-        @channel_manager.get_channel,
+        @channel_manager.channel,
         @config,
         interceptors: @interceptors
       )
@@ -49,7 +49,7 @@ module TbankGrpc
     # @return [Services::InstrumentsService]
     def instruments
       @instruments ||= Services::InstrumentsService.new(
-        @channel_manager.get_channel,
+        @channel_manager.channel,
         @config,
         interceptors: @interceptors
       )
@@ -60,7 +60,7 @@ module TbankGrpc
     # @return [Services::MarketDataService]
     def market_data
       @market_data ||= Services::MarketDataService.new(
-        @channel_manager.get_channel,
+        @channel_manager.channel,
         @config,
         interceptors: @interceptors
       )

@@ -42,8 +42,8 @@ module TbankGrpc
         #
         # @yieldparam candle [Candle]
         # @return [Enumerator, Array<Candle>]
-        def each(&)
-          @candles.each(&)
+        def each(&block)
+          @candles.each(&block)
         end
 
         # Размер коллекции.
@@ -52,6 +52,8 @@ module TbankGrpc
         def length
           @candles.length
         end
+
+        alias size length
 
         # Пустая ли коллекция.
         #
