@@ -2,31 +2,61 @@
 
 module TbankGrpc
   class Configuration
-    attr_accessor :token, :sandbox, :app_name, :endpoint, :timeout, :retry_attempts,
-                  :log_level, :logger, :cert_path, :stream_idle_timeout, :stream_watchdog_interval_sec,
-                  :channel_pool_size, :logger, :cert_path, :stream_idle_timeout,
-                  :stream_watchdog_interval_sec, :channel_pool_size, :keepalive_time_ms,
-                  :keepalive_timeout_ms, :min_time_between_pings_ms, :max_connection_idle_ms,
-                  :max_connection_age_ms, :client_idle_timeout_ms
+    # Core settings
+    attr_accessor :token, :sandbox, :app_name, :endpoint
+
+    # Timeouts & retries
+    attr_accessor :timeout, :retry_attempts, :enable_retries, :deadline_overrides
+
+    # Streaming
+    attr_accessor :stream_idle_timeout, :stream_watchdog_interval_sec
+
+    # Channel settings
+    attr_accessor :channel_pool_size, :max_message_size
+
+    # Connection tuning
+    attr_accessor :keepalive_time_ms, :keepalive_timeout_ms,
+                  :max_connection_idle_ms, :max_connection_age_ms
+
+    # SSL
+    attr_accessor :cert_path, :insecure
+
+    # Logging
+    attr_accessor :log_level, :logger
 
     def initialize
+      # Core
       @token = nil
       @sandbox = false
       @app_name = 'trddddd.tbank_grpc'
       @endpoint = nil
+
+      # Timeouts & retries
       @timeout = 30
       @retry_attempts = 3
-      @log_level = :info
+      @enable_retries = true
+      @deadline_overrides = {}
+
+      # Streaming
       @stream_idle_timeout = nil
       @stream_watchdog_interval_sec = nil
+
+      # Channel
       @channel_pool_size = 1
-      @cert_path = nil
+      @max_message_size = 50_000_000 # 50MB default
+
+      # Connection tuning (nil = use gRPC defaults)
       @keepalive_time_ms = nil
       @keepalive_timeout_ms = nil
-      @min_time_between_pings_ms = nil
       @max_connection_idle_ms = nil
       @max_connection_age_ms = nil
-      @client_idle_timeout_ms = nil
+
+      # SSL
+      @cert_path = nil
+      @insecure = false
+
+      # Logging
+      @log_level = :info
       @logger = nil
     end
 
@@ -42,17 +72,19 @@ module TbankGrpc
         endpoint: @endpoint,
         timeout: @timeout,
         retry_attempts: @retry_attempts,
-        log_level: @log_level,
-        cert_path: @cert_path,
+        enable_retries: @enable_retries,
+        deadline_overrides: @deadline_overrides,
         stream_idle_timeout: @stream_idle_timeout,
         stream_watchdog_interval_sec: @stream_watchdog_interval_sec,
         channel_pool_size: @channel_pool_size,
+        max_message_size: @max_message_size,
         keepalive_time_ms: @keepalive_time_ms,
         keepalive_timeout_ms: @keepalive_timeout_ms,
-        min_time_between_pings_ms: @min_time_between_pings_ms,
         max_connection_idle_ms: @max_connection_idle_ms,
         max_connection_age_ms: @max_connection_age_ms,
-        client_idle_timeout_ms: @client_idle_timeout_ms
+        cert_path: @cert_path,
+        insecure: @insecure,
+        log_level: @log_level
       }
     end
 
@@ -60,14 +92,17 @@ module TbankGrpc
 
     def setup_default_logger
       require 'logger'
-      raw = Logger.new($stdout)
-      raw.level = level_constant(@log_level)
-      LoggerWrapper.new(raw)
-    end
 
-    def level_constant(level)
-      levels = { debug: Logger::DEBUG, info: Logger::INFO, warn: Logger::WARN, error: Logger::ERROR }
-      levels[level.to_sym] || Logger::INFO
+      raw = Logger.new($stdout)
+
+      raw.level = {
+        debug: Logger::DEBUG,
+        info: Logger::INFO,
+        warn: Logger::WARN,
+        error: Logger::ERROR
+      }[@log_level.to_sym] || Logger::INFO
+
+      LoggerWrapper.new(raw)
     end
   end
 
@@ -77,10 +112,12 @@ module TbankGrpc
     end
 
     %i[debug info warn error].each do |level|
-      define_method(level) do |msg, **meta|
-        out = meta.empty? ? msg : "#{msg} #{meta.map { |k, v| "#{k}=#{v}" }.join(' ')}"
-        @logger.public_send(level, "[TbankGrpc] #{out}")
-      end
+      class_eval <<-RUBY, __FILE__, __LINE__ + 1
+        def #{level}(msg, **meta)
+          out = meta.empty? ? msg : "\#{msg} \#{meta.map { |k, v| "\#{k}=\#{v}" }.join(' ')}"
+          @logger.public_send(:#{level}, "[TbankGrpc] \#{out}")
+        end
+      RUBY
     end
   end
 
