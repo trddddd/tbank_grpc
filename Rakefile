@@ -102,7 +102,7 @@ task compile_proto: :check_protoc do
     puts "Compiling #{File.basename(proto_file)}..."
 
     system(
-      'grpc_tools_ruby_protoc',
+      'bundle', 'exec', 'grpc_tools_ruby_protoc',
       '-I', PROTO_DIR,
       '--ruby_out', output_dir,
       '--grpc_out', output_dir,
@@ -125,4 +125,14 @@ task autoupdate_proto: %i[clean_proto download_proto compile_proto check_protoc]
 RSpec::Core::RakeTask.new(:spec) do |task|
   task.pattern = 'spec/**/*_spec.rb'
   task.rspec_opts = '--color --format progress'
+end
+
+begin
+  require 'yard'
+  YARD::Rake::YardocTask.new(:doc)
+rescue LoadError
+  desc 'Generate YARD documentation (requires yard gem)'
+  task :doc do
+    abort 'yard is not installed. Run: bundle install'
+  end
 end

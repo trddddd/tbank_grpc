@@ -1,0 +1,33 @@
+name: Proto check
+
+on:
+  pull_request:
+    paths:
+      - 'proto/**'
+      - 'lib/tbank_grpc/proto/**'
+      - 'Rakefile'
+  push:
+    branches: [main, master]
+    paths:
+      - 'proto/**'
+      - 'lib/tbank_grpc/proto/**'
+      - 'Rakefile'
+
+jobs:
+  proto:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true
+
+      - name: Install grpc-tools
+        run: gem install grpc-tools
+
+      - name: Regenerate proto and check diff
+        run: |
+          bundle exec rake autoupdate_proto
+          git diff --exit-code lib/tbank_grpc/proto/

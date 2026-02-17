@@ -3,12 +3,15 @@
 require 'json'
 
 module TbankGrpc
+  # Пул gRPC-каналов (round-robin), создание канала с SSL/keepalive.
+  # @api private
   class ChannelManager
     ENDPOINTS = {
       production: 'invest-public-api.tbank.ru:443',
       sandbox: 'sandbox-invest-public-api.tbank.ru:443'
     }.freeze
 
+    # @param config [Hash] конфигурация (endpoint, cert_path, channel_pool_size и т.д.)
     def initialize(config)
       @config = config
       @pool_size = [@config.fetch(:channel_pool_size, 1).to_i, 1].max
@@ -23,6 +26,7 @@ module TbankGrpc
       )
     end
 
+    # @return [GRPC::Core::Channel] канал из пула (round-robin)
     def get_channel
       @mutex.synchronize do
         idx = @round_robin % @pool_size
@@ -31,6 +35,8 @@ module TbankGrpc
       end
     end
 
+    # Закрывает все каналы в пуле.
+    # @return [void]
     def close
       @mutex.synchronize do
         @channels.compact.each_with_index do |ch, i|
@@ -43,6 +49,7 @@ module TbankGrpc
       end
     end
 
+    # @return [Boolean] есть ли хотя бы один канал в состоянии IDLE/READY
     def connected?
       @mutex.synchronize do
         @channels.compact.any? { |ch| channel_ready?(ch) }

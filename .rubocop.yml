@@ -1,0 +1,17 @@
+# frozen_string_literal: true
+
+plugins:
+  - rubocop-rake
+
+AllCops:
+  TargetRubyVersion: 3.3.6
+  NewCops: enable
+  SuggestExtensions: false
+  Exclude:
+    - 'lib/tbank_grpc/proto/**/*_pb.rb'
+
+Metrics/BlockLength:
+  Exclude:
+    - 'Rakefile'
+    - '**/*.rake'
+    - 'spec/**/*_spec.rb'

@@ -18,7 +18,8 @@ Gem::Specification.new do |spec|
     'homepage_uri' => spec.homepage,
     'source_code_uri' => spec.homepage,
     'changelog_uri' => "#{spec.homepage}/blob/main/CHANGELOG.md",
-    'bug_tracker_uri' => "#{spec.homepage}/issues"
+    'bug_tracker_uri' => "#{spec.homepage}/issues",
+    'rubygems_mfa_required' => 'true'
   }
 
   spec.files = Dir['lib/**/*', 'proto/**/*', 'bin/**/*', 'README.md', 'LICENSE', 'CHANGELOG.md']
@@ -26,6 +27,7 @@ Gem::Specification.new do |spec|
 
   spec.required_ruby_version = '>= 3.0.0'
 
+  spec.add_dependency 'bigdecimal', '>= 3.0'
   spec.add_dependency 'google-protobuf', '~> 3.24'
   spec.add_dependency 'grpc', '~> 1.60'
   spec.add_dependency 'logger', '~> 1.5'
@@ -33,11 +35,18 @@ Gem::Specification.new do |spec|
 
   spec.add_development_dependency 'bundler'
   spec.add_development_dependency 'grpc-tools', '~> 1.60'
+  spec.add_development_dependency 'irb'
   spec.add_development_dependency 'pry'
   spec.add_development_dependency 'rake', '~> 13.0'
+  spec.add_development_dependency 'rdoc', '~> 6.6'
+  spec.add_development_dependency 'redcarpet', '~> 3.6'
   spec.add_development_dependency 'rspec', '~> 3.12'
   spec.add_development_dependency 'rspec-mocks', '~> 3.12'
   spec.add_development_dependency 'rubocop', '~> 1.50'
+  spec.add_development_dependency 'rubocop-rake', '~> 0.7.1'
+  spec.add_development_dependency 'timecop', '~> 0.9'
   spec.add_development_dependency 'vcr', '~> 6.1'
   spec.add_development_dependency 'webmock', '~> 3.19'
+  spec.add_development_dependency 'webrick', '~> 1.8'
+  spec.add_development_dependency 'yard', '~> 0.9'
 end
