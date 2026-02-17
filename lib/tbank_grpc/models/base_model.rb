@@ -35,6 +35,13 @@ module TbankGrpc
         pb_to_h.compact
       end
 
+      # Хэш атрибутов (удобно для сериализации, логов, совместимости с ожиданиями из Rails/ActiveModel).
+      #
+      # @return [Hash]
+      def attributes
+        to_h
+      end
+
       # Фабрика модели из protobuf.
       #
       # @param proto [Google::Protobuf::MessageExts, nil]

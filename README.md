@@ -25,6 +25,56 @@ client = TbankGrpc::Client.new
 client.close
 ```
 
+## UsersService
+
+Счета, информация о пользователе, маржинальные показатели. Доступ: `client.users`.
+
+```ruby
+# Список счетов (опционально status: :open, :closed, :new, :all)
+accounts = client.users.get_accounts
+accounts = client.users.get_accounts(status: :open)
+
+# Информация о пользователе (qualifications, tariff и т.д.)
+info = client.users.get_info
+
+# Маржинальные показатели по счёту
+margin = client.users.get_margin_attributes(account_id: accounts.first.id)
+```
+
+## MarketDataService
+
+Свечи, стакан, последние цены. Доступ: `client.market_data`.
+
+```ruby
+# Исторические свечи (instrument_id — FIGI, UID или ticker)
+candles = client.market_data.get_candles(
+  instrument_id: "BBG004730N88",
+  from: Time.now - 7*24*3600,
+  to: Time.now,
+  interval: :CANDLE_INTERVAL_DAY
+)
+# candles — Models::MarketData::CandleCollection
+# Сериализация: candles.to_a — массив Hash (цены Float); candles.to_a(precision: :big_decimal) — цены BigDecimal
+# Аналогично candles.to_h(precision: :big_decimal) и отдельная свеча candle.to_h(precision: :decimal)
+
+# Стакан по инструменту (глубина 1–50)
+order_book = client.market_data.get_order_book(instrument_id: "BBG004730N88", depth: 20)
+
+# Последние цены по одному или нескольким инструментам
+prices = client.market_data.get_last_prices(instrument_id: "BBG004730N88")
+prices = client.market_data.get_last_prices(instrument_id: ["BBG004730N88", "BBG0047315D0"])
+# prices — массив Models::MarketData::LastPrice
+```
+
+**Хелпер** — параллельная загрузка стаканов по нескольким инструментам (один RPC на инструмент):
+
+```ruby
+order_books = client.helpers.market_data.get_multiple_orderbooks(
+  ["BBG004730N88", "BBG0047315D0"],
+  depth: 10
+)
+```
+
 ## InstrumentsService
 
 Сервис инструментов: поиск по FIGI/тикеру, списки акций/облигаций/фьючерсов, расписания, купоны, дивиденды, активы. Доступ: `client.instruments`.
@@ -105,5 +155,9 @@ reports = client.instruments.get_asset_reports(
 ```
 
 Во всех методах опция `return_metadata: true` возвращает `TbankGrpc::Response` (data + metadata: tracking_id, ratelimit и т.д.) вместо модели/массива. Ошибки API — `TbankGrpc::Error` и подклассы.
+
+> [!NOTE]
+> **Модели и вывод в консоли**  
+> В консоли (inspect / pretty_print) у моделей показываются только **часть полей** — выбранные для краткого отображения. Все поля: **`to_h`** или **`attributes`**. Для свечей и стакана: `to_h(precision: :big_decimal)` / `to_a(precision: :big_decimal)` — цены (open, high, low, close и т.д.) в виде **BigDecimal** вместо Float.
 
 Подробнее: [Setup](docs/setup.md), [Configuration](docs/configuration.md). Документация API (YARD): `bundle exec rake doc`, просмотр — `bundle exec yard server` ([docs/yard.md](docs/yard.md)).
