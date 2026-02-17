@@ -60,7 +60,7 @@ module TbankGrpc
         # Поиск инструментов по текстовому запросу. FindInstrument.
         #
         # @param query [String] строка поиска (тикер, название и т.д.)
-        # @param instrument_kind [Symbol, Integer, nil] тип из InstrumentType: :futures, :share, :bond, :instrument_type_futures и т.д.
+        # @param instrument_kind [Symbol, Integer, nil] тип из InstrumentType: :futures, :share, :bond и т.д.
         # @param api_trade_available_flag [Boolean, nil] только торгуемые через API
         # @param return_metadata [Boolean] вернуть {TbankGrpc::Response} вместо массива моделей
         # @return [Array<Models::Instruments::InstrumentShort>, TbankGrpc::Response]
