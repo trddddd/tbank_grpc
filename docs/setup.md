@@ -7,24 +7,24 @@ cd /path/to/tbank_grpc
 bundle install
 ```
 
-TODO: ## 2) Загрузка proto-контрактов
+## 2) Proto-контракты
+
+Исходники `.proto` уже лежат в `proto/` (репозиторий [invest-contracts](https://opensource.tbank.ru/invest/invest-contracts)). Чтобы обновить их с сервера T-Bank:
 
 ```bash
-bin/setup_proto
+bundle exec rake download_proto
 ```
 
-Полный список файлов для ручной загрузки (репозиторий T-Bank Invest API):
+## 3) Компиляция proto
+
+Нужен компилятор `grpc_tools_ruby_protoc` (пакет `grpc-tools`). Результат — Ruby-классы в `lib/tbank_grpc/proto/`.
 
 ```bash
-mkdir -p proto/tbank/invest/v1
-curl -o proto/tbank/invest/v1/common.proto ...
-```
-
-TODO: ## 3) Компиляция proto
-
-```bash
+gem install grpc-tools   # если ещё не установлен
 bundle exec rake compile_proto
 ```
+
+Всё одной командой (очистка сгенерированных файлов, загрузка proto, компиляция): `bundle exec rake autoupdate_proto`.
 
 ## 4) SSL-сертификаты
 
