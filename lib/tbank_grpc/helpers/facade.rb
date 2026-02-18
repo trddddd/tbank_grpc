@@ -13,6 +13,11 @@ module TbankGrpc
       def instruments
         @instruments ||= InstrumentsHelper.new(@client)
       end
+
+      # @return [MarketDataHelper]
+      def market_data
+        @market_data ||= MarketDataHelper.new(@client)
+      end
     end
   end
 end

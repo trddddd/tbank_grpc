@@ -27,7 +27,7 @@ module TbankGrpc
     end
 
     # @return [GRPC::Core::Channel] канал из пула (round-robin)
-    def get_channel
+    def channel
       @mutex.synchronize do
         idx = @round_robin % @pool_size
         @round_robin += 1
@@ -52,7 +52,7 @@ module TbankGrpc
     # @return [Boolean] есть ли хотя бы один канал в состоянии IDLE/READY
     def connected?
       @mutex.synchronize do
-        @channels.compact.any? { |ch| channel_ready?(ch) }
+        @channels.compact.any? { |channel| channel_ready?(channel) }
       end
     rescue StandardError => e
       TbankGrpc.logger.warn('Failed to check connectivity', error: e.message)
@@ -65,8 +65,8 @@ module TbankGrpc
 
     private
 
-    def channel_ready?(ch)
-      state = ch.connectivity_state(false)
+    def channel_ready?(channel)
+      state = channel.connectivity_state(false)
       [
         GRPC::Core::ConnectivityStates::IDLE,
         GRPC::Core::ConnectivityStates::READY
@@ -77,13 +77,13 @@ module TbankGrpc
     end
 
     def create_channel
-      endpoint = get_endpoint
+      channel_endpoint = endpoint
       credentials = @config[:insecure] ? :this_channel_is_insecure : build_credentials
       channel_args = build_channel_args
 
-      TbankGrpc.logger.info("Creating gRPC channel to #{endpoint}", sandbox: @config[:sandbox])
+      TbankGrpc.logger.info("Creating gRPC channel to #{channel_endpoint}", sandbox: @config[:sandbox])
 
-      GRPC::Core::Channel.new(endpoint, channel_args, credentials)
+      GRPC::Core::Channel.new(channel_endpoint, channel_args, credentials)
     rescue ConfigurationError
       raise
     rescue StandardError => e
@@ -93,7 +93,7 @@ module TbankGrpc
       )
     end
 
-    def get_endpoint
+    def endpoint
       endpoint = @config[:endpoint] || (@config[:sandbox] ? ENDPOINTS[:sandbox] : ENDPOINTS[:production])
 
       unless endpoint.match?(/\A[\w.-]+:\d+\z/)

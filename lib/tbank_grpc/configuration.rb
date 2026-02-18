@@ -51,7 +51,8 @@ module TbankGrpc
     #   @return [Symbol] :debug, :info, :warn, :error
     # @!attribute [rw] logger
     #   @return [Logger, nil] кастомный логгер
-    attr_accessor :log_level, :logger
+    attr_accessor :log_level
+    attr_writer :logger
 
     # Создаёт конфигурацию с дефолтными значениями.
     def initialize

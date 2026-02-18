@@ -10,11 +10,11 @@ module TbankGrpc
 
         inspectable_attrs :exchange, :days
 
-        # @param pb [Google::Protobuf::MessageExts, nil]
-        def initialize(pb = nil)
+        # @param proto [Google::Protobuf::MessageExts, nil]
+        def initialize(proto = nil)
           super
-          @exchange = pb&.exchange
-          @days = Array(pb&.days).map { |d| Day.from_grpc(d) }
+          @exchange = proto&.exchange
+          @days = Array(proto&.days).map { |day| Day.from_grpc(day) }
         end
       end
     end

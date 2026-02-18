@@ -7,6 +7,7 @@ module TbankGrpc
       #
       # Используется в ответах:
       # `GetInstrumentBy`, `ShareBy`, `BondBy`, `FutureBy`, `Shares`, `Bonds`, `Futures`.
+      # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/PerceivedComplexity
       class Instrument < BaseModel
         INSTRUMENT_KIND_MAP = {
           0 => :INSTRUMENT_TYPE_UNSPECIFIED,
@@ -54,9 +55,9 @@ module TbankGrpc
           @model_cache
         end
 
-        def self.synchronize_model_cache(&)
+        def self.synchronize_model_cache(&block)
           @model_cache_mutex ||= Mutex.new
-          @model_cache_mutex.synchronize(&)
+          @model_cache_mutex.synchronize(&block)
         end
         private_class_method :synchronize_model_cache
 
@@ -186,12 +187,12 @@ module TbankGrpc
           infer_instrument_type(proto)
         end
 
-        def string_to_instrument_type(s)
-          return if s.to_s.strip.empty?
+        def string_to_instrument_type(value)
+          return if value.to_s.strip.empty?
 
           prefix = 'INSTRUMENT_TYPE_'
-          clean_s = s.upcase
-          normalized = clean_s.start_with?(prefix) ? clean_s : "#{prefix}#{clean_s}"
+          clean_value = value.upcase
+          normalized = clean_value.start_with?(prefix) ? clean_value : "#{prefix}#{clean_value}"
           sym = normalized.to_sym
           VALID_INSTRUMENT_TYPES.include?(sym) ? sym : nil
         end
@@ -208,6 +209,7 @@ module TbankGrpc
           end
         end
       end
+      # rubocop:enable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/PerceivedComplexity
     end
   end
 end

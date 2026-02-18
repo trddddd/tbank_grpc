@@ -19,8 +19,8 @@ RSpec.describe TbankGrpc::ChannelManager do
   context 'when endpoint format is invalid' do
     let(:config) { super().merge(endpoint: 'no-port') }
 
-    it 'raises ConfigurationError on get_channel' do
-      expect { manager.get_channel }.to raise_error(TbankGrpc::ConfigurationError, /Invalid endpoint/)
+    it 'raises ConfigurationError on channel' do
+      expect { manager.channel }.to raise_error(TbankGrpc::ConfigurationError, /Invalid endpoint/)
     end
   end
 end

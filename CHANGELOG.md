@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.4] - 2026-02-17
+
+### Added
+- BaseModel#attributes — алиас к to_h (удобство, ожидания из Rails/ActiveModel)
+- CandleCollection#to_a(precision: nil) — опциональный precision для сериализации свечей
+- UsersService и модели аккаунтов: account, margin_attributes, user_info
+- MarketDataService и подсервисы: candles_and_order_books, prices_and_statuses; модели: candle, candle_collection, last_price, order_book
+
+### Changed
+- Клиент: подключение UsersService и MarketDataService
+- Facade: методы для доступа к Users и Market Data
+- ChannelManager: get_channel → channel, get_endpoint → endpoint (приватный)
+- Configuration: logger только через attr_writer
+- Rubocop: TargetRubyVersion 3.0, метрики ClassLength/MethodLength/AbcSize/Cyclomatic/PerceivedComplexity, отключены Style/Documentation и DocumentDynamicEvalDefinition
+- Value objects (Money, Quotation, UnitsNano): инициализация через super, единообразный validate!
+- Dev-зависимости перенесены из gemspec в Gemfile с версиями
+- Именование параметров: pb → proto, короткие имена → полные (op → operation и т.д.)
+- CandlesAndOrderBooks: маппинг интервалов вынесен в константу INTERVAL_MAP
+- BaseService: убран избыточный rescue GRPC::BadStatus в call_rpc
+
+### Fixed
+- Формирование сообщения ошибки в ErrorHandler (текст + код)
+
 ## [0.1.3] - 2026-02-17
 
 ### Added

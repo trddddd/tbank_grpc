@@ -33,12 +33,34 @@ module TbankGrpc
       )
     end
 
+    # Доступ к сервису пользователя.
+    #
+    # @return [Services::UsersService]
+    def users
+      @users ||= Services::UsersService.new(
+        @channel_manager.channel,
+        @config,
+        interceptors: @interceptors
+      )
+    end
+
     # Доступ к сервису инструментов.
     #
     # @return [Services::InstrumentsService]
     def instruments
       @instruments ||= Services::InstrumentsService.new(
-        @channel_manager.get_channel,
+        @channel_manager.channel,
+        @config,
+        interceptors: @interceptors
+      )
+    end
+
+    # Доступ к сервису рыночных данных.
+    #
+    # @return [Services::MarketDataService]
+    def market_data
+      @market_data ||= Services::MarketDataService.new(
+        @channel_manager.channel,
         @config,
         interceptors: @interceptors
       )
@@ -78,7 +100,9 @@ module TbankGrpc
     private
 
     def clear_service_cache
+      @users = nil
       @instruments = nil
+      @market_data = nil
       @helpers = nil
     end
 

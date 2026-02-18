@@ -4,7 +4,8 @@ module TbankGrpc
   module Converters
     module Enum
       # Преобразует символ/строку в константу enum модуля (proto).
-      # value: Symbol, String или Integer (как есть). prefix: опциональный префикс константы (например 'ORDER_DIRECTION').
+      # value: Symbol, String или Integer (как есть).
+      # prefix: опциональный префикс константы (например 'ORDER_DIRECTION').
       def self.resolve(enum_module, value, prefix: nil)
         return if value.nil?
         return value if value.is_a?(Integer)
