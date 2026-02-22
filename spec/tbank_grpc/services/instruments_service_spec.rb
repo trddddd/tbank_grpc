@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
 RSpec.describe TbankGrpc::Services::InstrumentsService do
-  it 'inherits from BaseService' do
-    expect(described_class).to be < TbankGrpc::Services::BaseService
+  it 'inherits from Unary::BaseUnaryService' do
+    expect(described_class).to be < TbankGrpc::Services::Unary::BaseUnaryService
   end
 
   it 'includes all instrument submodules' do
@@ -19,7 +19,7 @@ RSpec.describe TbankGrpc::Services::InstrumentsService do
   describe 'instance interface (contract)' do
     # gRPC Stub requires a real GRPC::Core::Channel (type check); no RPC is called
     let(:channel) { GRPC::Core::Channel.new('localhost:50051', {}, :this_channel_is_insecure) }
-    let(:config) { { token: 't', app_name: 'spec', sandbox: true, timeout: 30 } }
+    let(:config) { { token: 't', app_name: 'trddddd.tbank_grpc', sandbox: true, timeout: 30 } }
     let(:service) { described_class.new(channel, config, interceptors: []) }
 
     it 'exposes stub' do

@@ -25,7 +25,7 @@ Gem::Specification.new do |spec|
   spec.files = Dir['lib/**/*', 'proto/**/*', 'bin/**/*', 'README.md', 'LICENSE', 'CHANGELOG.md']
   spec.require_paths = ['lib']
 
-  spec.required_ruby_version = '>= 3.0.0'
+  spec.required_ruby_version = '>= 3.2.0'
 
   spec.add_dependency 'bigdecimal', '>= 3.0'
   spec.add_dependency 'google-protobuf', '~> 3.24'

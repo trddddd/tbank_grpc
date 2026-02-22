@@ -24,9 +24,16 @@ module TbankGrpc
     #   @return [Hash] переопределение дедлайнов по сервису/методу (секунды)
     attr_accessor :timeout, :retry_attempts, :enable_retries, :deadline_overrides
 
+    # @!attribute [rw] thread_pool_size
+    #   @return [Integer] размер пула callback-потоков для stream event loop
     # @!attribute [rw] stream_idle_timeout
+    #   @return [Float, nil] порог «тишины» (сек): если дольше не было событий по bidirectional stream,
+    #     watchdog инициирует force_reconnect. nil — watchdog не запускается. См. docs/configuration.md.
     # @!attribute [rw] stream_watchdog_interval_sec
-    attr_accessor :stream_idle_timeout, :stream_watchdog_interval_sec
+    #   @return [Float, nil] период проверки watchdog (сек). По умолчанию в сервисе 5.
+    # @!attribute [rw] stream_metrics_enabled
+    #   @return [Boolean] включить сбор метрик stream event loop
+    attr_accessor :thread_pool_size, :stream_idle_timeout, :stream_watchdog_interval_sec, :stream_metrics_enabled
 
     # @!attribute [rw] channel_pool_size
     #   @return [Integer] размер пула каналов (по умолчанию 1)
@@ -35,9 +42,15 @@ module TbankGrpc
     attr_accessor :channel_pool_size, :max_message_size
 
     # @!attribute [rw] keepalive_time_ms
+    #   @return [Integer, nil] интервал отправки gRPC keepalive ping (мс). nil — дефолт в канале (60_000).
+    #     Меньшее значение (напр. 5_000) ускоряет обнаружение разрыва сети. См. docs/configuration.md.
     # @!attribute [rw] keepalive_timeout_ms
+    #   @return [Integer, nil] время ожидания ответа на keepalive (мс). nil — дефолт в канале (10_000).
     # @!attribute [rw] max_connection_idle_ms
+    #   @return [Integer, nil] макс. время простоя соединения (мс), после чего канал может быть закрыт.
+    #     nil — дефолт (600_000).
     # @!attribute [rw] max_connection_age_ms
+    #   @return [Integer, nil] макс. возраст соединения (мс). nil — дефолт в канале (3_600_000).
     attr_accessor :keepalive_time_ms, :keepalive_timeout_ms,
                   :max_connection_idle_ms, :max_connection_age_ms
 
@@ -69,8 +82,10 @@ module TbankGrpc
       @deadline_overrides = {}
 
       # Streaming
+      @thread_pool_size = 4
       @stream_idle_timeout = nil
       @stream_watchdog_interval_sec = nil
+      @stream_metrics_enabled = false
 
       # Channel
       @channel_pool_size = 1
@@ -107,8 +122,10 @@ module TbankGrpc
         retry_attempts: @retry_attempts,
         enable_retries: @enable_retries,
         deadline_overrides: @deadline_overrides,
+        thread_pool_size: @thread_pool_size,
         stream_idle_timeout: @stream_idle_timeout,
         stream_watchdog_interval_sec: @stream_watchdog_interval_sec,
+        stream_metrics_enabled: @stream_metrics_enabled,
         channel_pool_size: @channel_pool_size,
         max_message_size: @max_message_size,
         keepalive_time_ms: @keepalive_time_ms,
@@ -148,12 +165,10 @@ module TbankGrpc
     end
 
     %i[debug info warn error].each do |level|
-      class_eval <<-RUBY, __FILE__, __LINE__ + 1
-        def #{level}(msg, **meta)
-          out = meta.empty? ? msg : "\#{msg} \#{meta.map { |k, v| "\#{k}=\#{v}" }.join(' ')}"
-          @logger.public_send(:#{level}, "[TbankGrpc] \#{out}")
-        end
-      RUBY
+      define_method(level) do |msg, **meta|
+        out = meta.empty? ? msg : "#{msg} #{meta.map { |k, v| "#{k}=#{v}" }.join(' ')}"
+        @logger.public_send(level, "[TbankGrpc] #{out}")
+      end
     end
   end
 

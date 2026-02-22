@@ -13,6 +13,19 @@ TbankGrpc.configure do |config|
   config.sandbox = true
   config.log_level = :debug
   config.timeout = 30
+  config.retry_attempts = 3
+  config.thread_pool_size = 8
+  config.stream_metrics_enabled = true
+  config.stream_idle_timeout = 25
+  config.stream_watchdog_interval_sec = 5
+  # Локальный smoke-тест реконнекта:
+  # через deadline в 300s принудительно получаем GRPC::DeadlineExceeded и проверяем
+  # auto-reconnect + restore подписок. Для обычного long-lived стрима override не нужен.
+  config.deadline_overrides = {
+    'MarketDataStreamService/MarketDataStream' => 300,
+    'MarketDataStreamService/MarketDataServerSideStream' => 300
+  }
+
   if File.exist?(CERT_BUNDLE)
     config.cert_path = CERT_BUNDLE
   else

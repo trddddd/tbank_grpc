@@ -26,7 +26,7 @@ module TbankGrpc
           return_metadata = options.fetch(:return_metadata, false)
 
           id = resolve_instrument_id(instrument_id: instrument_id)
-          interval_proto = convert_interval(interval)
+          interval_proto = TbankGrpc::Converters::CandleInterval.normalize(interval)
           request_params = {
             instrument_id: id,
             from: timestamp_to_proto(from),
@@ -47,16 +47,16 @@ module TbankGrpc
           end
         end
 
-        # Стакан по инструменту. GetOrderBook. Глубина 1–50.
+        # Стакан по инструменту. GetOrderBook. Допустимые глубины: 1, 10, 20, 30, 40, 50.
         #
         # @param instrument_id [String]
-        # @param depth [Integer] глубина стакана (1–50), по умолчанию 20
+        # @param depth [Integer] глубина стакана (приводится к ближайшей допустимой), по умолчанию 20
         # @param return_metadata [Boolean] вернуть {TbankGrpc::Response} вместо модели
         # @return [Models::MarketData::OrderBook, Response]
         # @raise [TbankGrpc::Error]
         def get_order_book(instrument_id:, depth: 20, return_metadata: false)
           id = resolve_instrument_id(instrument_id: instrument_id)
-          validate_depth(depth)
+          depth = Converters::OrderBookDepth.normalize(depth)
           request = Tinkoff::Public::Invest::Api::Contract::V1::GetOrderBookRequest.new(
             instrument_id: id,
             depth: depth
@@ -74,17 +74,6 @@ module TbankGrpc
           msg = "Invalid interval: #{interval.inspect}. #{e.message}. "
           msg += 'Use CANDLE_INTERVAL_1_MIN, CANDLE_INTERVAL_DAY, etc.'
           raise InvalidArgumentError, msg
-        end
-
-        def convert_interval(interval)
-          # В API часовой интервал — CANDLE_INTERVAL_HOUR, а не 1_HOUR
-          interval == :CANDLE_INTERVAL_1_HOUR ? :CANDLE_INTERVAL_HOUR : interval
-        end
-
-        def validate_depth(depth)
-          return if (1..50).include?(depth)
-
-          raise InvalidArgumentError, "Depth must be between 1 and 50, got #{depth}"
         end
       end
     end

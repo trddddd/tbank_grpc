@@ -12,14 +12,11 @@ module TbankGrpc
         # @return [Models::Instruments::FuturesMargin, TbankGrpc::Response]
         # @raise [TbankGrpc::Error]
         def get_futures_margin(instrument_id:, return_metadata: false)
-          handle_request(method_name: 'InstrumentsService/GetFuturesMargin',
-                         return_metadata: return_metadata) do |return_op:|
-            request = Tinkoff::Public::Invest::Api::Contract::V1::GetFuturesMarginRequest.new(
-              instrument_id: instrument_id
-            )
-            response = call_rpc(@stub, :get_futures_margin, request, return_metadata: return_op)
-            next response if return_metadata
-
+          request = Tinkoff::Public::Invest::Api::Contract::V1::GetFuturesMarginRequest.new(
+            instrument_id: instrument_id
+          )
+          execute_rpc(method_name: :get_futures_margin, request: request,
+                      return_metadata: return_metadata) do |response|
             Models::Instruments::FuturesMargin.from_grpc(response)
           end
         end

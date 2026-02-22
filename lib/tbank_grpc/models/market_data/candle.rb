@@ -8,6 +8,7 @@ module TbankGrpc
         grpc_simple :figi, :volume, :is_complete
         grpc_quotation :open, :high, :low, :close
         grpc_timestamp :time
+        serializable_attr :instrument_uid
 
         inspectable_attrs :figi, :time, :open, :high, :low, :close, :volume, :is_complete
 
@@ -86,27 +87,6 @@ module TbankGrpc
         # @return [BigDecimal, nil]
         def typical_price
           @typical_price ||= (high.to_d + low.to_d + close.to_d) / 3 if high && low && close
-        end
-
-        # Сериализация свечи в Hash.
-        #
-        # @param precision [Symbol, nil] формат цен (open/high/low/close):
-        #   nil — Float, :big_decimal/:decimal — BigDecimal
-        # @return [Hash]
-        def to_h(precision: nil)
-          return {} unless @pb
-
-          serialize_hash({
-                           figi: figi,
-                           instrument_uid: instrument_uid,
-                           time: time,
-                           open: open,
-                           high: high,
-                           low: low,
-                           close: close,
-                           volume: volume,
-                           is_complete: is_complete
-                         }, precision: precision)
         end
 
         # Проверка корректности данных свечи.

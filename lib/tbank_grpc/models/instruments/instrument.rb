@@ -7,64 +7,19 @@ module TbankGrpc
       #
       # Используется в ответах:
       # `GetInstrumentBy`, `ShareBy`, `BondBy`, `FutureBy`, `Shares`, `Bonds`, `Futures`.
-      # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/PerceivedComplexity
       class Instrument < BaseModel
-        INSTRUMENT_KIND_MAP = {
-          0 => :INSTRUMENT_TYPE_UNSPECIFIED,
-          1 => :INSTRUMENT_TYPE_BOND,
-          2 => :INSTRUMENT_TYPE_SHARE,
-          3 => :INSTRUMENT_TYPE_CURRENCY,
-          4 => :INSTRUMENT_TYPE_ETF,
-          5 => :INSTRUMENT_TYPE_FUTURES,
-          6 => :INSTRUMENT_TYPE_SP,
-          7 => :INSTRUMENT_TYPE_OPTION,
-          8 => :INSTRUMENT_TYPE_CLEARING_CERTIFICATE
-        }.freeze
+        extend Concerns::InstrumentClassMethods
 
-        VALID_INSTRUMENT_TYPES = %i[
-          INSTRUMENT_TYPE_SHARE INSTRUMENT_TYPE_BOND INSTRUMENT_TYPE_ETF
-          INSTRUMENT_TYPE_FUTURES INSTRUMENT_TYPE_OPTION INSTRUMENT_TYPE_CURRENCY
-          INSTRUMENT_TYPE_SP INSTRUMENT_TYPE_CLEARING_CERTIFICATE
-        ].freeze
+        # Реэкспорт для const_get в макросах (ищет только в предках класса, не в singleton class).
+        VALID_INSTRUMENT_TYPES = Concerns::InstrumentClassMethods::VALID_INSTRUMENT_TYPES
 
-        # Маппинг instrument_kind/instrument_type → ключ в model_cache (имя класса)
-        INSTRUMENT_KIND_TO_CACHE_KEY = {
-          INSTRUMENT_TYPE_BOND: 'Bond',
-          INSTRUMENT_TYPE_SHARE: 'Share',
-          INSTRUMENT_TYPE_ETF: 'ETF',
-          INSTRUMENT_TYPE_FUTURES: 'Future',
-          INSTRUMENT_TYPE_OPTION: 'Option',
-          INSTRUMENT_TYPE_CURRENCY: 'Currency',
-          INSTRUMENT_TYPE_SP: 'StructuredNote'
-        }.freeze
-
-        def self.model_cache
-          return @model_cache if defined?(@model_cache) && @model_cache
-
-          synchronize_model_cache do
-            return @model_cache if defined?(@model_cache) && @model_cache
-
-            mod = Instruments
-            @model_cache = mod.constants.each_with_object({}) do |const, cache|
-              next if const.to_s.start_with?('_')
-
-              klass = mod.const_get(const)
-              cache[const.to_s] = klass if klass.is_a?(Class)
-            end.freeze
-          end
-          @model_cache
-        end
-
-        def self.synchronize_model_cache(&block)
-          @model_cache_mutex ||= Mutex.new
-          @model_cache_mutex.synchronize(&block)
-        end
-        private_class_method :synchronize_model_cache
-
-        grpc_simple :figi, :ticker, :class_code, :isin, :lot,
+        grpc_simple :figi, :ticker, :class_code, :isin,
                     :currency, :name, :uid, :trading_status, :asset_uid
         grpc_simple_with_fallback :instrument_uid, fallback: :uid
+        # lot — только для alias lot_size, в реестр не регистрируем
+        define_method(:lot) { @pb.lot if @pb.respond_to?(:lot) }
         grpc_alias :lot_size, :lot
+        serializable_attr :instrument_type, :min_price_increment
 
         inspectable_attrs :figi, :ticker, :name, :class_code, :isin,
                           :instrument_type, :currency, :lot_size,
@@ -72,60 +27,6 @@ module TbankGrpc
 
         instrument_type_predicates types_constant: :VALID_INSTRUMENT_TYPES
         grpc_alias :stock?, :share?
-
-        class << self
-          # Собирает конкретную модель инструмента (например, {Bond} / {Share} / {Future})
-          # на основе типа protobuf-сообщения и полей kind/type.
-          #
-          # @param proto_instrument [Google::Protobuf::MessageExts, nil]
-          # @return [Instrument, nil]
-          def from_grpc(proto_instrument)
-            return unless proto_instrument
-
-            key = proto_instrument.class.name.split('::').last
-            model_class = model_cache[key]
-            if !model_class || model_class == self
-              kind = resolve_instrument_type_from_proto(proto_instrument)
-              cache_key = kind && INSTRUMENT_KIND_TO_CACHE_KEY[kind]
-              model_class = model_cache[cache_key] if cache_key
-            end
-            model_class ? model_class.new(proto_instrument) : new(proto_instrument)
-          end
-
-          # Вычисляет символьный тип инструмента из protobuf.
-          #
-          # @param proto [Google::Protobuf::MessageExts, nil]
-          # @return [Symbol, nil]
-          def resolve_instrument_type_from_proto(proto)
-            return unless proto
-
-            if proto.respond_to?(:instrument_kind) && proto.instrument_kind
-              kind = proto.instrument_kind
-              sym = kind.is_a?(Integer) ? INSTRUMENT_KIND_MAP[kind] : kind
-              return sym if VALID_INSTRUMENT_TYPES.include?(sym)
-            end
-
-            if proto.respond_to?(:instrument_type) && proto.instrument_type
-              val = proto.instrument_type
-              return val if VALID_INSTRUMENT_TYPES.include?(val)
-
-              normalized = val.to_s.strip.upcase
-              normalized = "INSTRUMENT_TYPE_#{normalized}" unless normalized.start_with?('INSTRUMENT_TYPE_')
-              sym = normalized.to_sym
-              return sym if VALID_INSTRUMENT_TYPES.include?(sym)
-            end
-
-            case proto.class.name
-            when /::Currency$/ then :INSTRUMENT_TYPE_CURRENCY
-            when /::Future$/ then :INSTRUMENT_TYPE_FUTURES
-            when /::Share$/ then :INSTRUMENT_TYPE_SHARE
-            when /::Bond$/ then :INSTRUMENT_TYPE_BOND
-            when /::Etf$/ then :INSTRUMENT_TYPE_ETF
-            when /::Option$/ then :INSTRUMENT_TYPE_OPTION
-            when /::StructuredNote$/ then :INSTRUMENT_TYPE_SP
-            end
-          end
-        end
 
         # Тип инструмента в нормализованном формате `INSTRUMENT_TYPE_*`.
         #
@@ -152,64 +53,14 @@ module TbankGrpc
           trading_status == :SECURITY_TRADING_STATUS_NORMAL_TRADING
         end
 
-        # Сериализует protobuf в Hash c нормализованными полями.
-        #
-        # @return [Hash]
-        def to_h
-          return {} unless @pb
-
-          result = pb_to_h
-          result[:instrument_type] = instrument_type
-          result[:instrument_uid] = instrument_uid
-          result[:lot_size] = result[:lot] if result.key?(:lot)
-          result
-        end
-
         private
 
         def resolve_instrument_type(proto)
           return unless proto
 
-          if proto.respond_to?(:instrument_kind) && proto.instrument_kind
-            kind = proto.instrument_kind
-            sym = kind.is_a?(Integer) ? INSTRUMENT_KIND_MAP[kind] : kind
-            return sym if VALID_INSTRUMENT_TYPES.include?(sym)
-          end
-
-          if proto.respond_to?(:instrument_type) && proto.instrument_type
-            val = proto.instrument_type
-            return val if VALID_INSTRUMENT_TYPES.include?(val)
-
-            res = string_to_instrument_type(val.to_s)
-            return res if res
-          end
-
-          infer_instrument_type(proto)
-        end
-
-        def string_to_instrument_type(value)
-          return if value.to_s.strip.empty?
-
-          prefix = 'INSTRUMENT_TYPE_'
-          clean_value = value.upcase
-          normalized = clean_value.start_with?(prefix) ? clean_value : "#{prefix}#{clean_value}"
-          sym = normalized.to_sym
-          VALID_INSTRUMENT_TYPES.include?(sym) ? sym : nil
-        end
-
-        def infer_instrument_type(proto)
-          case proto.class.name
-          when /::Currency$/ then :INSTRUMENT_TYPE_CURRENCY
-          when /::Future$/ then :INSTRUMENT_TYPE_FUTURES
-          when /::Share$/ then :INSTRUMENT_TYPE_SHARE
-          when /::Bond$/ then :INSTRUMENT_TYPE_BOND
-          when /::Etf$/ then :INSTRUMENT_TYPE_ETF
-          when /::Option$/ then :INSTRUMENT_TYPE_OPTION
-          when /::StructuredNote$/ then :INSTRUMENT_TYPE_SP
-          end
+          self.class.resolve_instrument_type_from_proto(proto)
         end
       end
-      # rubocop:enable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/PerceivedComplexity
     end
   end
 end

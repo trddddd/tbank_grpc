@@ -6,7 +6,7 @@ module TbankGrpc
     # Свечи, стакан, последние цены.
     #
     # @see https://developer.tbank.ru/invest/api/market-data-service
-    class MarketDataService < BaseService
+    class MarketDataService < Unary::BaseUnaryService
       include MarketData::CandlesAndOrderBooks
       include MarketData::PricesAndStatuses
 

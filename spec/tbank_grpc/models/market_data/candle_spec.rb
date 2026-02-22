@@ -27,23 +27,28 @@ RSpec.describe TbankGrpc::Models::MarketData::Candle do
   end
 
   describe '#inspect' do
-    it 'formats quotation fields without internal object dump' do
+    it 'includes open quotation in human-readable form' do
       model = described_class.from_grpc(proto)
-      output = model.inspect
+      expect(model.inspect).to include('open: 306.15')
+    end
 
-      expect(output).to include('open: 306.15')
-      expect(output).to include('close: 305.8')
-      expect(output).not_to include('Core::ValueObjects::Quotation')
+    it 'includes close quotation in human-readable form' do
+      model = described_class.from_grpc(proto)
+      expect(model.inspect).to include('close: 305.8')
+    end
+
+    it 'omits internal Quotation class name from output' do
+      model = described_class.from_grpc(proto)
+      expect(model.inspect).not_to include('Core::ValueObjects::Quotation')
     end
   end
 
   describe '#to_h' do
-    it 'supports :decimal precision alias for quotation serialization' do
+    it 'serializes quotation fields as BigDecimal with :decimal precision' do
       model = described_class.from_grpc(proto)
       payload = model.to_h(precision: :decimal)
 
-      expect(payload[:open]).to be_a(BigDecimal)
-      expect(payload[:close]).to be_a(BigDecimal)
+      expect(payload).to include(open: a_kind_of(BigDecimal), close: a_kind_of(BigDecimal))
     end
   end
 end

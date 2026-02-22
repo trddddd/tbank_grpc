@@ -3,6 +3,7 @@
 module TbankGrpc
   module Models
     module Core
+      # Рекурсивное преобразование proto-сообщений в Hash; Money/Quotation/Timestamp через конвертеры.
       module ProtobufToHash
         SPECIAL_CONVERTERS = {
           'Money' => TbankGrpc::Converters::Money,
@@ -10,9 +11,10 @@ module TbankGrpc
           'Quotation' => TbankGrpc::Converters::Quotation
         }.freeze
 
-        module_function
-
-        def pb_message_to_h(pb_msg)
+        # @param pb_msg [Google::Protobuf::Message, nil]
+        # @return [Hash<Symbol, Object>] поля в виде символов ключей; вложенные сообщения и
+        #   повторяющиеся поля рекурсивно
+        def self.pb_message_to_h(pb_msg)
           return {} unless pb_msg
 
           descriptor = pb_msg.class.descriptor
@@ -30,7 +32,9 @@ module TbankGrpc
           result
         end
 
-        def descriptor_field_names(descriptor)
+        # @param descriptor [Object] дескриптор сообщения
+        # @return [Array<String>]
+        def self.descriptor_field_names(descriptor)
           return [] unless descriptor
 
           descriptor.map { |fd| fd.name.to_s }
@@ -39,7 +43,9 @@ module TbankGrpc
           []
         end
 
-        def transform_field_value(value)
+        # @param value [Object] поле proto (примитив, Timestamp, Message, RepeatedField)
+        # @return [Object] Ruby-представление (Time, Float, Hash, Array и т.д.)
+        def self.transform_field_value(value)
           case value
           when nil
             nil
@@ -59,7 +65,7 @@ module TbankGrpc
           end
         end
 
-        def convert_special_type(value)
+        def self.convert_special_type(value)
           return nil unless value.respond_to?(:units)
 
           class_suffix = value.class.name.split('::').last
@@ -67,7 +73,7 @@ module TbankGrpc
           converter&.to_f(value)
         end
 
-        def protobuf_message?(value)
+        def self.protobuf_message?(value)
           return false if value.nil?
           return true if defined?(Google::Protobuf::Message) && value.is_a?(Google::Protobuf::Message)
 

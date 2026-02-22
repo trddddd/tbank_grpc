@@ -9,14 +9,12 @@ RSpec.describe TbankGrpc::DeadlineResolver do
     it 'returns Time in future for known service and default config' do
       config = { timeout: 30 }
       deadline = described_class.deadline_for('InstrumentsService/GetBondBy', config)
-      expect(deadline).to be_a(Time)
-      expect(deadline).to be > Time.now
+      expect(deadline).to be_a(Time).and be > Time.now
     end
 
     it 'uses DEFAULT_DEADLINES for InstrumentsService' do
       config = {}
       deadline = described_class.deadline_for('InstrumentsService/GetBondBy', config)
-      expect(deadline).to be_a(Time)
       expect(deadline - Time.now).to be_between(179, 181)
     end
 

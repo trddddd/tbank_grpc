@@ -7,7 +7,7 @@ module TbankGrpc
     module Core
       module ValueObjects
         # Общая логика для типов units + nano/10^9 (google.type.Money, Quotation).
-        # Включается в Money и Quotation.
+        # Включается в Data.define value objects: Quotation, Money.
         module UnitsNano
           NANO_DIVISOR = 1_000_000_000.0
           NANO_BD = BigDecimal('1000000000')
@@ -17,6 +17,22 @@ module TbankGrpc
           ROUNDING = BigDecimal::ROUND_HALF_EVEN
 
           class << self
+            # Валидация units/nano (nano в допустимом диапазоне, согласованность знаков).
+            def validate_units_nano!(units, nano)
+              unless nano.abs <= NANO_MAX
+                raise ArgumentError,
+                      "nano must be in [-#{NANO_MAX}, #{NANO_MAX}], got: #{nano}"
+              end
+              if units.positive? && nano.negative?
+                raise ArgumentError,
+                      "sign inconsistency: units=#{units} positive but nano=#{nano} negative"
+              end
+              return unless units.negative? && nano.positive?
+
+              raise ArgumentError,
+                    "sign inconsistency: units=#{units} negative but nano=#{nano} positive"
+            end
+
             # Нормализация units/nano: nano в [-999_999_999, 999_999_999], перенос переполнения в units
             def normalize_units_nano(units, nano)
               u = units.to_i
@@ -66,10 +82,6 @@ module TbankGrpc
           end
 
           private
-
-          def apply_sign_consistency(units, nano)
-            UnitsNano.apply_sign_consistency(units, nano)
-          end
 
           def add_units_nano(other)
             normalized_units, normalized_nano = UnitsNano.normalize_units_nano(units + other.units, nano + other.nano)

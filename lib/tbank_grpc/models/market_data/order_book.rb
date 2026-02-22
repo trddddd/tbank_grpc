@@ -6,10 +6,19 @@ module TbankGrpc
   module Models
     module MarketData
       # Стакан по инструменту из ответа `GetOrderBook`.
+      #
+      # Представления цен:
+      # - Для доменной точности и работы с units/nano используйте {#bids}/{#asks}
+      #   (там `price` как {Core::ValueObjects::Quotation}).
+      # - Для расчётов используйте {#bid_prices}/{#ask_prices}, {#spread}, {#mid_price}
+      #   (все в `BigDecimal`).
+      # - Для вывода в консоль/UI используйте строковые helper-методы
+      #   {#best_bid_price_s}, {#best_ask_price_s}, {#spread_s}.
       class OrderBook < BaseModel
         grpc_simple :figi, :instrument_uid, :ticker, :class_code, :depth
-        grpc_timestamp :last_price_ts, :close_price_ts
         grpc_quotation :last_price, :close_price, :limit_up, :limit_down
+        serializable_attr :time, :bids, :asks,
+                          :spread, :spread_bps, :spread_percent, :mid_price
 
         inspectable_attrs :figi, :depth, :bids_count, :asks_count
 
@@ -17,7 +26,7 @@ module TbankGrpc
         # @return [Array<BigDecimal>] цены bid-уровней
         # @return [Array<Integer>] количества ask-уровней
         # @return [Array<Integer>] количества bid-уровней
-        attr_reader :ask_prices, :bid_quantities, :ask_quantities, :bid_prices
+        attr_reader :ask_prices, :bid_prices, :ask_quantities, :bid_quantities
 
         # @param proto [Google::Protobuf::MessageExts, nil]
         def initialize(proto = nil)
@@ -48,7 +57,9 @@ module TbankGrpc
         #
         # @return [Time, nil]
         def time
-          @time ||= timestamp_to_time(time_ts)
+          return @time if defined?(@time)
+
+          @time = timestamp_to_time(time_ts)
         end
 
         # Bid-уровни стакана.
@@ -56,8 +67,8 @@ module TbankGrpc
         # @return [Array<Hash>]
         def bids
           @bids ||= (@pb&.bids || []).map do |bid|
-            { price: Core::ValueObjects::Quotation.from_grpc(bid.price), quantity: bid.quantity }
-          end
+            { price: Core::ValueObjects::Quotation.from_grpc(bid.price), quantity: bid.quantity }.freeze
+          end.freeze
         end
 
         # Ask-уровни стакана.
@@ -65,22 +76,64 @@ module TbankGrpc
         # @return [Array<Hash>]
         def asks
           @asks ||= (@pb&.asks || []).map do |ask|
-            { price: Core::ValueObjects::Quotation.from_grpc(ask.price), quantity: ask.quantity }
-          end
+            { price: Core::ValueObjects::Quotation.from_grpc(ask.price), quantity: ask.quantity }.freeze
+          end.freeze
         end
 
         # Лучший bid.
         #
         # @return [Hash, nil]
         def best_bid
-          bids&.first
+          bids.first
+        end
+
+        # Цена лучшего bid в `BigDecimal` (для расчётов).
+        #
+        # @return [BigDecimal, nil]
+        def best_bid_price_decimal
+          bid_prices.first
+        end
+
+        # Цена лучшего bid в `Float` (для display-only сценариев).
+        #
+        # @return [Float, nil]
+        def best_bid_price_f
+          best_bid_price_decimal&.to_f
+        end
+
+        # Цена лучшего bid в человеко-читаемой строке без экспоненциальной нотации.
+        #
+        # @return [String, nil]
+        def best_bid_price_s
+          format_decimal(best_bid_price_decimal)
         end
 
         # Лучший ask.
         #
         # @return [Hash, nil]
         def best_ask
-          asks&.first
+          asks.first
+        end
+
+        # Цена лучшего ask в `BigDecimal` (для расчётов).
+        #
+        # @return [BigDecimal, nil]
+        def best_ask_price_decimal
+          ask_prices.first
+        end
+
+        # Цена лучшего ask в `Float` (для display-only сценариев).
+        #
+        # @return [Float, nil]
+        def best_ask_price_f
+          best_ask_price_decimal&.to_f
+        end
+
+        # Цена лучшего ask в человеко-читаемой строке без экспоненциальной нотации.
+        #
+        # @return [String, nil]
+        def best_ask_price_s
+          format_decimal(best_ask_price_decimal)
         end
 
         # Абсолютный спред между лучшими bid/ask.
@@ -92,13 +145,23 @@ module TbankGrpc
           @spread ||= (ask_prices.first - bid_prices.first).abs
         end
 
-        # Спред в bps.
+        # Спред в строковом формате для человеко-читаемого вывода.
+        #
+        # @return [String, nil]
+        def spread_s
+          format_decimal(spread)
+        end
+
+        # Спред в bps относительно mid-price.
         #
         # @return [Float, nil]
         def spread_bps
-          return unless best_bid && best_ask && bid_prices.first.to_f.positive?
+          return unless best_bid && best_ask
 
-          @spread_bps ||= ((spread / bid_prices.first) * 10_000).round(2)
+          mid = mid_price
+          return unless mid&.to_f&.positive?
+
+          @spread_bps ||= ((spread / mid) * 10_000).to_f.round(2)
         end
 
         # Спред в процентах.
@@ -124,12 +187,11 @@ module TbankGrpc
         # @param levels [Integer]
         # @return [BigDecimal]
         def weighted_bid_price(levels = 5)
-          total_volume = 0
-          weighted_sum = BigDecimal('0')
-          (@pb&.bids || []).first(levels).each do |order|
-            price = TbankGrpc::Converters::Quotation.to_decimal(order.price)
-            weighted_sum += price * order.quantity
-            total_volume += order.quantity
+          prices = bid_prices.first(levels)
+          quantities = bid_quantities.first(levels)
+          total_volume = quantities.sum
+          weighted_sum = prices.zip(quantities).sum(BigDecimal('0')) do |price, quantity|
+            price * quantity
           end
           total_volume.zero? ? BigDecimal('0') : weighted_sum / total_volume
         end
@@ -142,7 +204,10 @@ module TbankGrpc
 
           total_bids = bid_quantities.sum
           total_asks = ask_quantities.sum
-          (total_bids - total_asks).to_f / (total_bids + total_asks)
+          total = total_bids + total_asks
+          return if total.zero?
+
+          (total_bids - total_asks).to_f / total
         end
 
         # Минимальная ликвидность в обе стороны по первым N уровням.
@@ -155,39 +220,51 @@ module TbankGrpc
           [bid_vol, ask_vol].min
         end
 
-        # Сериализация стакана в Hash.
+        # Bid-уровни стакана в decimal-представлении
+        # (`price` как `BigDecimal`) для расчётов и сериализации.
         #
-        # @param precision [Symbol, nil] формат сериализации денежных значений
-        # @return [Hash]
-        def to_h(precision: nil)
-          return {} unless @pb
+        # @return [Array<Hash>]
+        def bids_decimal
+          @bids_decimal ||= bid_prices.zip(bid_quantities).map do |price, quantity|
+            { price: price, quantity: quantity }
+          end
+        end
 
-          serialize_hash({
-                           figi: figi,
-                           instrument_uid: instrument_uid,
-                           ticker: ticker,
-                           class_code: class_code,
-                           depth: depth,
-                           time: time,
-                           bids: bids,
-                           asks: asks,
-                           last_price: last_price,
-                           close_price: close_price,
-                           limit_up: limit_up,
-                           limit_down: limit_down,
-                           spread: spread,
-                           spread_bps: spread_bps,
-                           spread_percent: spread_percent,
-                           mid_price: mid_price
-                         }, precision: precision)
+        # Ask-уровни стакана в decimal-представлении
+        # (`price` как `BigDecimal`) для расчётов и сериализации.
+        #
+        # @return [Array<Hash>]
+        def asks_decimal
+          @asks_decimal ||= ask_prices.zip(ask_quantities).map do |price, quantity|
+            { price: price, quantity: quantity }
+          end
         end
 
         private
 
+        # Время стакана: GetOrderBookResponse — orderbook_ts (23), в стриме OrderBook — time (6).
+        # Поддерживаем оба поля для совместимости unary и stream payload.
         def time_ts
           return unless @pb
 
           (@pb.orderbook_ts if @pb.respond_to?(:orderbook_ts)) || (@pb.time if @pb.respond_to?(:time))
+        end
+
+        # Внутренние timestamp-поля proto (не в реестре, не попадают в to_h).
+        def last_price_ts
+          return unless @pb.respond_to?(:last_price_ts) && @pb.last_price_ts
+
+          timestamp_to_time(@pb.last_price_ts)
+        end
+
+        def close_price_ts
+          return unless @pb.respond_to?(:close_price_ts) && @pb.close_price_ts
+
+          timestamp_to_time(@pb.close_price_ts)
+        end
+
+        def format_decimal(value)
+          value&.to_s('F')
         end
       end
     end

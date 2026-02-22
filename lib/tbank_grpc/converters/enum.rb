@@ -2,10 +2,13 @@
 
 module TbankGrpc
   module Converters
+    # Преобразование символа/строки в константу enum модуля (proto).
     module Enum
-      # Преобразует символ/строку в константу enum модуля (proto).
-      # value: Symbol, String или Integer (как есть).
-      # prefix: опциональный префикс константы (например 'ORDER_DIRECTION').
+      # @param enum_module [Module] модуль с константами enum (например OrderDirection)
+      # @param value [Symbol, String, Integer, nil] имя константы или целое (возвращается как есть)
+      # @param prefix [String, Symbol, nil] опциональный префикс константы (например 'ORDER_DIRECTION')
+      # @return [Integer, nil] значение константы enum
+      # @raise [TbankGrpc::InvalidArgumentError] при неизвестном value
       def self.resolve(enum_module, value, prefix: nil)
         return if value.nil?
         return value if value.is_a?(Integer)

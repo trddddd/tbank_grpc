@@ -65,7 +65,7 @@ module TbankGrpc
       # @return [Models::Instruments::Instrument]
       # @raise [TbankGrpc::Error] если инструмент не найден
       def get_by_ticker_any_class(ticker)
-        normalized = ticker.to_s.strip.upcase
+        normalized = TbankGrpc::Normalizers::TickerNormalizer.normalize(ticker)
         shorts = @client.instruments.find_instrument(query: normalized, api_trade_available_flag: false)
         exact = shorts.select { |item| item.ticker.to_s.upcase == normalized }
         chosen = exact.find(&:api_trade_available_flag) || exact.first

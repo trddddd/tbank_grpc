@@ -41,14 +41,14 @@ module TbankGrpc
         private
 
         def list_instruments(method, instrument_status, instrument_exchange, return_metadata)
-          handle_request(method_name: "InstrumentsService/#{method.to_s.capitalize}",
-                         return_metadata: return_metadata) do |return_op:|
-            request = build_instruments_request(instrument_status, instrument_exchange)
-            response = call_rpc(@stub, method, request, return_metadata: return_op)
-            next response if return_metadata
-
-            response.instruments.map { |item| Models::Instruments::Instrument.from_grpc(item) }
-          end
+          request = build_instruments_request(instrument_status, instrument_exchange)
+          execute_list_rpc(
+            method_name: method,
+            request: request,
+            response_collection: :instruments,
+            model_class: Models::Instruments::Instrument,
+            return_metadata: return_metadata
+          )
         end
 
         def build_instruments_request(instrument_status, instrument_exchange)

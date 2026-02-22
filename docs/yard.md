@@ -24,6 +24,12 @@ bundle exec yard doc
 
 В YARD попадает **только** то, что сгенерировано из Ruby-кода в `lib/`. Каталог `docs/` (setup, configuration, ssl_certificates и т.д.) в вывод YARD не входит — это проектная документация для репозитория и GitHub.
 
+Практически полезные точки входа в текущем API:
+- `TbankGrpc::Client` (включая stream helper-методы)
+- `TbankGrpc::Services::MarketDataStreamService` (callbacks, listen lifecycle, server-side stream)
+- `TbankGrpc::Services::Unary::BaseUnaryService`, `TbankGrpc::Services::Streaming::BaseServerStreamService`, `TbankGrpc::Services::Streaming::BaseBidiStreamService` (базовые абстракции по типам RPC)
+- `TbankGrpc::Streaming::Core::Dispatch::EventLoop`, `TbankGrpc::Streaming::MarketData::Subscriptions::Manager`, `TbankGrpc::Streaming::Core::Observability::Metrics` (внутренняя streaming инфраструктура)
+
 ## Просмотр в браузере (live server)
 
 ```bash

@@ -18,8 +18,11 @@ RSpec.describe TbankGrpc::TrackingId do
       expect(described_class.extract('x-tracking-id': 'sym-456')).to eq('sym-456')
     end
 
-    it 'returns nil when value is blank' do
+    it 'returns nil when value is empty string' do
       expect(described_class.extract('x-tracking-id' => '')).to be_nil
+    end
+
+    it 'returns nil when value is whitespace only' do
       expect(described_class.extract('x-tracking-id' => '   ')).to be_nil
     end
 

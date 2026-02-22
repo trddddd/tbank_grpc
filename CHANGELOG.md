@@ -5,6 +5,58 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- `Normalizers::AccountIdNormalizer` — normalize_single / normalize_list (strip, required, uniq); используется в UsersService#get_margin_attributes
+- `Normalizers::TickerNormalizer` — normalize(value) → to_s.strip.upcase; используется в InstrumentClassMethods и InstrumentsHelper
+- `Normalizers::StreamNameNormalizer` — normalize(value, default: 'stream'); используется в ListenLoop
+- `Normalizers::PayloadFormatNormalizer` — normalize(format) → :proto или :model; используется в BaseServerStreamService
+- `Converters::UnitsNano` — общая схема units + nano/1e9 (to_f, to_decimal, from_decimal); Quotation и Money делегируют ему числовые преобразования
+
+### Removed
+- `Converters::Quotation.to_floats`, `to_decimals` — неиспользуемые batch-методы
+
+### Changed
+- `Converters::Money.to_decimal` задокументирован как публичный API (BigDecimal для точных расчётов)
+- Quotation и Money используют UnitsNano для to_f/to_decimal/decimal_to_pb, остаются только обёртки и тип proto
+- Извлечение tracking_id унифицировано: ErrorHandler и Interceptors::Logging используют `TrackingId.extract`; дублирующий ErrorHandler.extract_tracking_id удалён
+
+## [0.2.0] - 2026-02-22
+
+### Added
+- Новый streaming API: `MarketDataStreamService` (bidirectional + server-side) и фасадные методы в `Client` (`stream_orderbook`, `stream_candles`, `stream_trades`, `stream_info`, `stream_last_price`, `listen_to_stream*`, `stream_metrics`)
+- Новая инфраструктура стриминга: `Streaming::Core::Dispatch::EventLoop`, `Runtime::{AsyncListener, ReconnectionStrategy, StreamWatchdog}`, `Session::ListenLoop`, `Observability::Metrics`
+- Новый слой подписок/роутинга: `Streaming::MarketData::Subscriptions::{Manager, Registry, MutationLimiter, ParamsNormalizer, RequestFactory}` и `Responses::{EventRouter, ModelMapper}`
+- Новые модели рыночного стриминга: `Models::MarketData::{Trade, TradingStatus, OpenInterest}`
+- Базовые классы по типам RPC: `Services::Unary::BaseUnaryService`, `Services::Streaming::{BaseBidiStreamService, BaseServerStreamService}`
+- Конвертер `Converters::CandleInterval` (канонизация алиасов, включая `CANDLE_INTERVAL_1_HOUR`)
+- Документация по стримингу: `docs/market_data_streaming.md`, расширения в `README.md` и `docs/configuration.md`
+- Большой пакет тестов для streaming-слоя, `MarketDataStreamService`, `OrderBook` и `Instrument`
+
+### Changed
+- **Breaking:** версия Ruby повышена до `>= 3.2.0` (`tbank_grpc.gemspec`), RuboCop target обновлён до 3.2 ради Data.define
+- **Breaking:** `Services::BaseService` удалён, unary-сервисы переведены на `Services::Unary::BaseUnaryService`
+- **Breaking:** `CandleCollection#to_a(precision:)` заменён на `serialize_candles(precision:)` (избежание конфликта с `Enumerable#to_a`)
+- **Breaking:** value objects `Money` и `Quotation` переведены на `Data.define`; `Models::Core::ValueObjects::Base` удалён
+- Клиент разделяет channel manager для unary и stream lifecycle (изоляция reconnect), добавлены thread-safe lazy-init сервисов и явное закрытие всех stream managers при `close/reconnect`
+- `Configuration` расширена stream-параметрами (`thread_pool_size`, `stream_idle_timeout`, `stream_watchdog_interval_sec`, `stream_metrics_enabled`) и прокидывает их в `to_h`
+- `ChannelManager`: отдельные insecure endpoints (legacy `tinkoff.ru`), расширенные structured-логи, `reset(source:, reason:)` с явной семантикой глобального reset для manager instance
+- `BaseModel`/DSL сериализации: `to_h(precision:)` теперь строится по реестру `serializable_attr`; улучшена обработка protobuf repeated/map и вложенных объектов в `Serializable`
+- Модель `OrderBook` получила расширенные расчетные/display helper-методы (`best_*_price_*`, `spread_s`, `mid_price`, `spread_bps` через mid), а сериализация стала более явной
+- Модель `Instrument` вынесла классовую логику в `Concerns::InstrumentClassMethods` (кэш моделей, определение типа по proto, fallback mapping)
+- Набор instrument/unary методов унифицирован на `execute_rpc` вместо ручного `handle_request/call_rpc` в каждом методе
+- `ProtoLoader`/`DeadlineResolver`/`ProtobufToHash` переведены на `self.*` API вместо `module_function` для единообразия
+- Metrics/Observability: один класс `Core::Observability::Metrics` с `enabled:`; при `enabled: false` методы `track_*` работают как no-op и возвращается zero-shape статистика
+- Streaming internals: `EventRouter` и Subscription Manager упрощены (единый `emit_event`, меньше промежуточных делегатов)
+
+### Fixed
+- Обработка `GRPC::PermissionDenied` и `GRPC::Unauthenticated` в listen loop (корректная остановка stream без бесконечных reconnect)
+- Обработка `GRPC::Internal` в stream-цикле и стабилизация reconnect path без аварийного падения `listen`
+- Исправлен off-by-one в reconnect attempts: backoff начинается с `attempt=1`
+- Счетчики reconnect/consecutive_failures в listen loop приведены к ожидаемой семантике
+- Устранён риск потери `STOP_SIGNAL` в worker loop при исключениях внутри callback-обработки
+
 ## [0.1.4] - 2026-02-17
 
 ### Added

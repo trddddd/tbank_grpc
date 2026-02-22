@@ -2,7 +2,10 @@
 
 module TbankGrpc
   module Converters
+    # Преобразование proto Timestamp ↔ Time.
     module Timestamp
+      # @param timestamp [Google::Protobuf::Timestamp, nil]
+      # @return [Time, nil] локальное время или nil при ошибке парсинга
       def self.to_time(timestamp)
         return unless timestamp
 
