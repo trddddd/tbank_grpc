@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.2.0] - 2026-02-22
 
 ### Added
 - `Normalizers::AccountIdNormalizer` — normalize_single / normalize_list (strip, required, uniq); используется в UsersService#get_margin_attributes
@@ -13,18 +13,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Normalizers::StreamNameNormalizer` — normalize(value, default: 'stream'); используется в ListenLoop
 - `Normalizers::PayloadFormatNormalizer` — normalize(format) → :proto или :model; используется в BaseServerStreamService
 - `Converters::UnitsNano` — общая схема units + nano/1e9 (to_f, to_decimal, from_decimal); Quotation и Money делегируют ему числовые преобразования
-
-### Removed
-- `Converters::Quotation.to_floats`, `to_decimals` — неиспользуемые batch-методы
-
-### Changed
-- `Converters::Money.to_decimal` задокументирован как публичный API (BigDecimal для точных расчётов)
-- Quotation и Money используют UnitsNano для to_f/to_decimal/decimal_to_pb, остаются только обёртки и тип proto
-- Извлечение tracking_id унифицировано: ErrorHandler и Interceptors::Logging используют `TrackingId.extract`; дублирующий ErrorHandler.extract_tracking_id удалён
-
-## [0.2.0] - 2026-02-22
-
-### Added
 - Новый streaming API: `MarketDataStreamService` (bidirectional + server-side) и фасадные методы в `Client` (`stream_orderbook`, `stream_candles`, `stream_trades`, `stream_info`, `stream_last_price`, `listen_to_stream*`, `stream_metrics`)
 - Новая инфраструктура стриминга: `Streaming::Core::Dispatch::EventLoop`, `Runtime::{AsyncListener, ReconnectionStrategy, StreamWatchdog}`, `Session::ListenLoop`, `Observability::Metrics`
 - Новый слой подписок/роутинга: `Streaming::MarketData::Subscriptions::{Manager, Registry, MutationLimiter, ParamsNormalizer, RequestFactory}` и `Responses::{EventRouter, ModelMapper}`
@@ -35,6 +23,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Большой пакет тестов для streaming-слоя, `MarketDataStreamService`, `OrderBook` и `Instrument`
 
 ### Changed
+- `Converters::Money.to_decimal` задокументирован как публичный API (BigDecimal для точных расчётов)
+- Quotation и Money используют UnitsNano для to_f/to_decimal/decimal_to_pb, остаются только обёртки и тип proto
+- Извлечение tracking_id унифицировано: ErrorHandler и Interceptors::Logging используют `TrackingId.extract`; дублирующий ErrorHandler.extract_tracking_id удалён
 - **Breaking:** версия Ruby повышена до `>= 3.2.0` (`tbank_grpc.gemspec`), RuboCop target обновлён до 3.2 ради Data.define
 - **Breaking:** `Services::BaseService` удалён, unary-сервисы переведены на `Services::Unary::BaseUnaryService`
 - **Breaking:** `CandleCollection#to_a(precision:)` заменён на `serialize_candles(precision:)` (избежание конфликта с `Enumerable#to_a`)
