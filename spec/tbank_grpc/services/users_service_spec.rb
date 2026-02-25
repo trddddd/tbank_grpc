@@ -3,15 +3,19 @@
 require 'spec_helper'
 
 RSpec.describe TbankGrpc::Services::UsersService do
+  it 'inherits from Unary::BaseUnaryService' do
+    expect(described_class).to be < TbankGrpc::Services::Unary::BaseUnaryService
+  end
+
+  let(:channel) { instance_double(GRPC::Core::Channel) }
+  let(:config) { { token: 't', app_name: 'trddddd.tbank_grpc', sandbox: false } }
+  let(:grpc_stub) { instance_double(Tinkoff::Public::Invest::Api::Contract::V1::UsersService::Stub) }
+  let(:service) { described_class.new(channel, config) }
+
   before do
     TbankGrpc::ProtoLoader.require!('users')
     allow_any_instance_of(described_class).to receive(:initialize_stub).and_return(grpc_stub)
   end
-
-  let(:channel) { instance_double(GRPC::Core::Channel) }
-  let(:config) { { token: 't', app_name: 'a', sandbox: false } }
-  let(:grpc_stub) { instance_double(Tinkoff::Public::Invest::Api::Contract::V1::UsersService::Stub) }
-  let(:service) { described_class.new(channel, config) }
 
   describe '#get_accounts' do
     before do

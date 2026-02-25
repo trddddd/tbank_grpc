@@ -17,8 +17,10 @@ gem 'tbank_grpc'
 ```ruby
 TbankGrpc.configure do |config|
   config.token = ENV["TBANK_TOKEN"]
-  config.app_name = "my_app"
+  config.app_name = "trddddd.tbank_grpc"
   config.sandbox = false
+  # По умолчанию false; включайте при необходимости наблюдаемости.
+  config.stream_metrics_enabled = true
 end
 
 client = TbankGrpc::Client.new
@@ -54,11 +56,20 @@ candles = client.market_data.get_candles(
   interval: :CANDLE_INTERVAL_DAY
 )
 # candles — Models::MarketData::CandleCollection
-# Сериализация: candles.to_a — массив Hash (цены Float); candles.to_a(precision: :big_decimal) — цены BigDecimal
+# Сериализация: candles.to_h — Hash с ключом candles (массив Hash); candles.serialize_candles(precision: :big_decimal) — массив Hash свечей с BigDecimal
 # Аналогично candles.to_h(precision: :big_decimal) и отдельная свеча candle.to_h(precision: :decimal)
 
 # Стакан по инструменту (глубина 1–50)
 order_book = client.market_data.get_order_book(instrument_id: "BBG004730N88", depth: 20)
+
+# В модели стакана есть 2 представления цен:
+# 1) domain-level (точный формат Quotation):
+q = order_book.bids.first[:price]     # => Core::ValueObjects::Quotation
+# 2) числовой формат для расчётов:
+px = order_book.bid_prices.first      # => BigDecimal
+
+# Для удобного вывода в консоль/UI используйте display-хелперы:
+puts "bid=#{order_book.best_bid_price_s} ask=#{order_book.best_ask_price_s} spread=#{order_book.spread_s}"
 
 # Последние цены по одному или нескольким инструментам
 prices = client.market_data.get_last_prices(instrument_id: "BBG004730N88")
@@ -74,6 +85,110 @@ order_books = client.helpers.market_data.get_multiple_orderbooks(
   depth: 10
 )
 ```
+
+## Market Data Streaming
+
+Bidirectional-стрим рыночных данных: подписки на стакан, свечи, последние цены, сделки, торговый статус, открытый интерес. Доступ: `client.market_data_stream` или фасадные методы `client.stream_*`.
+Подробно по ограничениям, реконнекту, payload-форматам и архитектурным нюансам: [docs/market_data_streaming.md](docs/market_data_streaming.md).
+Внутренняя реализация стриминга разложена по `TbankGrpc::Streaming::Core::*` и `TbankGrpc::Streaming::MarketData::*` (это не публичный API).
+
+**Подписки** (перед запуском цикла):
+
+```ruby
+# Стакан (глубина 1–50)
+client.stream_orderbook(instrument_id: "BBG004730N88", depth: 20)
+
+# Свечи в реальном времени
+client.stream_candles(instrument_id: "BBG004730N88", interval: :CANDLE_INTERVAL_1_MIN)
+
+# Сделки и последние сделки
+client.stream_trades("BBG004730N88", trade_source: :TRADE_SOURCE_ALL)
+# Фьючерс: с открытым интересом (события :trade и :open_interest)
+client.stream_trades("FUTSI12345678", trade_source: :TRADE_SOURCE_ALL, with_open_interest: true)
+
+# Торговый статус и последняя цена
+client.stream_info("BBG004730N88")
+client.stream_last_price("BBG004730N88")
+```
+
+**Обработка событий** — `on(event_type, as: :proto | :model, &block)`. Типы: `:candle`, `:orderbook`, `:trade`, `:trading_status`, `:last_price`, `:open_interest` (для моделей), плюс `:ping`, `:subscription_status` (только proto):
+
+```ruby
+client.market_data_stream.on(:trade, as: :model) { |trade| puts trade.to_h }
+client.market_data_stream.on(:last_price, as: :model) { |lp| puts lp.price }
+# при with_open_interest: true в stream_trades:
+client.market_data_stream.on(:open_interest, as: :model) { |oi| puts oi.open_interest }
+
+# Для orderbook/model можно использовать display-хелперы OrderBook:
+client.market_data_stream.on(:orderbook, as: :model) do |ob|
+  next unless ob.best_bid && ob.best_ask
+
+  puts "[#{ob.time&.strftime('%H:%M:%S')}] " \
+       "bid #{ob.best_bid_price_s} x #{ob.bid_quantities.first} | " \
+       "ask #{ob.best_ask_price_s} x #{ob.ask_quantities.first} " \
+       "spread #{ob.spread_s}"
+end
+```
+
+**Запуск**: синхронный блокирующий цикл или асинхронный в фоне:
+
+```ruby
+# Синхронно (блокирует до stop_stream / Ctrl+C)
+client.listen_to_stream
+
+# Асинхронно
+client.listen_to_stream_async
+# ... позже
+client.stop_stream
+```
+
+**Пример в консоли (IRB)** — подписки, события, запрос своих подписок (GetMySubscriptions), смена подписок без переподключения:
+
+```ruby
+# 1) Подписки (можно добавлять до и во время работы стрима)
+client.stream_last_price("BBG004730N88")   # SBER
+client.stream_orderbook(instrument_id: "BBG004730N88", depth: 10)
+
+# 2) Обработчики событий
+client.market_data_stream.on(:last_price, as: :model) { |lp| puts "last_price #{lp.instrument_uid} => #{lp.price}" }
+client.market_data_stream.on(:orderbook, as: :model) do |ob|
+  puts "orderbook #{ob.instrument_uid} bid=#{ob.best_bid_price_s} ask=#{ob.best_ask_price_s}"
+end
+# Ответы на GetMySubscriptions приходят как subscription_status (печать без шумного proto.inspect)
+client.market_data_stream.on(:subscription_status, as: :proto) do |h|
+  r = h[:response]
+  puts "subscription_status: type=#{h[:type]} tracking_id=#{r.tracking_id}"
+end
+
+# 3) Запуск стрима (асинхронно)
+client.listen_to_stream_async
+
+# 4) Запрос списка активных подписок с сервера — запрос уходит в тот же стрим
+client.market_data_stream.my_subscriptions
+# В консоли появятся subscription_status по каждому типу подписок (orderbook, last_price, ...)
+# Локальное состояние подписок (без запроса к серверу): client.market_data_stream.current_subscriptions
+
+# 5) Подписки можно менять «на лету» — запросы уйдут в тот же стрим, без переподключения
+client.stream_candles(instrument_id: "BBG004730N88", interval: :CANDLE_INTERVAL_1_MIN)
+client.market_data_stream.on(:candle, as: :model) { |c| puts "candle #{c.close}" }
+
+# Остановка
+client.stop_stream
+client.close
+```
+
+**Метрики**:
+- `client.stream_metrics` — счётчики событий, подписки, реконнекты
+- `client.stream_event_stats(:trade)` — статистика по типу события
+- сбор метрик управляется `config.stream_metrics_enabled` (по умолчанию `false`)
+- при отключении метрик оба метода возвращают zero-shape (тот же формат Hash, нулевые/пустые значения)
+
+Важные нюансы:
+- `as: :model` в `on(...)` поддерживается только для `:candle`, `:orderbook`, `:trade`, `:trading_status`, `:last_price`, `:open_interest`.
+- В server-side stream (`market_data_server_side_stream(as: :model)`) payload `ping` и `subscription_status` пропускаются, stream не падает.
+- Клиентский guard лимитов: `300` подписок на соединение (в библиотеке `info` не учитывается) и `100` мутаций/мин.
+- Для stream RPC по умолчанию deadline не выставляется; при необходимости задаётся через `config.deadline_overrides`.
+- `GRPC::PermissionDenied` / `GRPC::Unauthenticated` останавливают stream: после обновления токена запустите listen заново.
 
 ## InstrumentsService
 
@@ -159,8 +274,8 @@ reports = client.instruments.get_asset_reports(
 
 > [!NOTE]
 > **Модели и вывод в консоли**  
-> В консоли (inspect / pretty_print) у моделей показываются только **часть полей** — выбранные для краткого отображения. Все поля: **`to_h`** или **`attributes`**. Для свечей и стакана: `to_h(precision: :big_decimal)` / `to_a(precision: :big_decimal)` — цены (open, high, low, close и т.д.) в виде **BigDecimal** вместо Float.
+> В консоли (inspect / pretty_print) у моделей показываются только **часть полей** — выбранные для краткого отображения. Все поля: **`to_h`** или **`attributes`**. Для свечей и стакана: `to_h(precision: :big_decimal)`; у коллекции свечей также `serialize_candles(precision: :big_decimal)` — цены (open, high, low, close и т.д.) в виде **BigDecimal** вместо Float.
 
-Подробнее: [Setup](docs/setup.md), [Configuration](docs/configuration.md). 
+Подробнее: [Setup](docs/setup.md), [Configuration](docs/configuration.md), [Market Data Streaming](docs/market_data_streaming.md). 
 
 Документация API (YARD): `bundle exec rake doc`, просмотр — `bundle exec yard server` ([docs/yard.md](docs/yard.md)).

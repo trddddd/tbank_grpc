@@ -5,6 +5,9 @@ module TbankGrpc
     module Schedules
       # Торговый интервал дня (type + начало/конец по UTC).
       class Interval < BaseModel
+        serializable_attr :type, :start_time, :end_time
+        inspectable_attrs :type, :start_time, :end_time
+
         # Тип интервала из protobuf (`MAIN`, `PREMARKET`, ...).
         #
         # @return [String, Symbol, Integer, nil]
@@ -29,8 +32,6 @@ module TbankGrpc
 
           timestamp_to_time(@pb.interval.end_ts)
         end
-
-        inspectable_attrs :type, :start_time, :end_time
       end
     end
   end

@@ -6,12 +6,10 @@ module TbankGrpc
   module ProtoLoader
     PROTO_DIR = File.expand_path('proto', __dir__).freeze
 
-    module_function
-
     # @param name [String] имя набора (например 'instruments' → instruments_pb, instruments_services_pb)
     # @return [true]
     # @raise [ConfigurationError] если файлы не найдены (нужен rake compile_proto)
-    def require!(name)
+    def self.require!(name)
       $LOAD_PATH.unshift(PROTO_DIR) unless $LOAD_PATH.include?(PROTO_DIR)
       require "#{name}_pb"
       require "#{name}_services_pb"

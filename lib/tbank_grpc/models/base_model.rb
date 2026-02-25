@@ -16,9 +16,14 @@ module TbankGrpc
       # @return [Google::Protobuf::MessageExts, nil]
       attr_reader :pb
 
-      # Преобразование protobuf в Hash.
+      # Преобразование protobuf-сообщения в Hash «как есть» (все поля из дескриптора).
+      # Конвертация типов: MoneyValue/Quotation → Float, Timestamp → Time, вложенные сообщения → Hash.
+      # Не использует реестр _serializable_attrs и не поддерживает precision.
       #
-      # @param proto [Google::Protobuf::MessageExts, nil]
+      # Используется: 1) как fallback в {#to_h}, когда у класса нет зарегистрированных атрибутов;
+      # 2) при явном вызове для отладки или дампа произвольного proto без модели.
+      #
+      # @param proto [Google::Protobuf::MessageExts, nil] сообщение (по умолчанию текущий @pb)
       # @return [Hash]
       def pb_to_h(proto = @pb)
         return {} unless proto
@@ -26,13 +31,30 @@ module TbankGrpc
         Core::ProtobufToHash.pb_message_to_h(proto)
       end
 
-      # Сериализация текущего объекта в Hash.
+      # Сериализация в Hash для JSON/логов/API.
       #
+      # Два пути:
+      # - **По реестру:** если у класса есть зарегистрированные атрибуты (grpc_simple, grpc_money,
+      #   serializable_attr и т.д.), в хэш попадают только они; значения проходят через {TbankGrpc::Models::Core::Mixins::Serializable}
+      #   с поддержкой precision для денег и котировок.
+      # - **Fallback:** если реестр пуст (класс не объявлял атрибуты через DSL), возвращается
+      #   полный дамп proto через {#pb_to_h} — все поля из дескриптора, без precision.
+      #
+      # В геме все модели объявляют атрибуты через DSL; fallback срабатывает только для подклассов
+      # без вызовов grpc_* / serializable_attr (например, минимальный wrapper или Class.new(BaseModel)).
+      #
+      # @param precision [Symbol, nil] формат денежных/ценовых полей (nil, :big_decimal, :decimal)
       # @return [Hash]
-      def to_h
+      def to_h(precision: nil)
         return {} unless @pb
 
-        pb_to_h.compact
+        names = self.class.serializable_attr_names
+        return pb_to_h.compact if names.empty?
+
+        hash = names.each_with_object({}) do |attr, h|
+          h[attr] = public_send(attr) if respond_to?(attr)
+        end
+        serialize_hash(hash, precision: precision)
       end
 
       # Хэш атрибутов (удобно для сериализации, логов, совместимости с ожиданиями из Rails/ActiveModel).

@@ -5,8 +5,8 @@ module TbankGrpc
     module Instruments
       # Накопленный купонный доход по облигации (`GetAccruedInterests`).
       class AccruedInterest < BaseModel
-        grpc_timestamp :date
         grpc_quotation :value, :value_percent, :nominal
+        grpc_timestamp :date
 
         inspectable_attrs :date, :value, :value_percent, :nominal
       end

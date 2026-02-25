@@ -12,11 +12,8 @@ module TbankGrpc
         # @return [Models::Assets::AssetFull, TbankGrpc::Response]
         # @raise [TbankGrpc::Error]
         def get_asset_by(id:, return_metadata: false)
-          handle_request(method_name: 'InstrumentsService/GetAssetBy', return_metadata: return_metadata) do |return_op:|
-            request = Tinkoff::Public::Invest::Api::Contract::V1::AssetRequest.new(id: id)
-            response = call_rpc(@stub, :get_asset_by, request, return_metadata: return_op)
-            next response if return_metadata
-
+          request = Tinkoff::Public::Invest::Api::Contract::V1::AssetRequest.new(id: id)
+          execute_rpc(method_name: :get_asset_by, request: request, return_metadata: return_metadata) do |response|
             Models::Assets::AssetFull.from_grpc(response.asset)
           end
         end
@@ -28,16 +25,16 @@ module TbankGrpc
         # @return [Array<Models::Assets::AssetFundamental>, TbankGrpc::Response]
         # @raise [TbankGrpc::Error]
         def get_asset_fundamentals(assets:, return_metadata: false)
-          handle_request(method_name: 'InstrumentsService/GetAssetFundamentals',
-                         return_metadata: return_metadata) do |return_op:|
-            request = Tinkoff::Public::Invest::Api::Contract::V1::GetAssetFundamentalsRequest.new(
-              assets: Array(assets)
-            )
-            response = call_rpc(@stub, :get_asset_fundamentals, request, return_metadata: return_op)
-            next response if return_metadata
-
-            Array(response.fundamentals).map { |pb| Models::Assets::AssetFundamental.from_grpc(pb) }
-          end
+          request = Tinkoff::Public::Invest::Api::Contract::V1::GetAssetFundamentalsRequest.new(
+            assets: Array(assets)
+          )
+          execute_list_rpc(
+            method_name: :get_asset_fundamentals,
+            request: request,
+            response_collection: :fundamentals,
+            model_class: Models::Assets::AssetFundamental,
+            return_metadata: return_metadata
+          )
         end
 
         # Расписания выхода отчётностей эмитентов. GetAssetReports.
@@ -49,18 +46,18 @@ module TbankGrpc
         # @return [Array<Models::Assets::AssetReportEvent>, TbankGrpc::Response]
         # @raise [TbankGrpc::Error]
         def get_asset_reports(instrument_id:, from: nil, to: nil, return_metadata: false)
-          handle_request(method_name: 'InstrumentsService/GetAssetReports',
-                         return_metadata: return_metadata) do |return_op:|
-            request = Tinkoff::Public::Invest::Api::Contract::V1::GetAssetReportsRequest.new(
-              instrument_id: instrument_id,
-              from: timestamp_to_proto(from),
-              to: timestamp_to_proto(to)
-            )
-            response = call_rpc(@stub, :get_asset_reports, request, return_metadata: return_op)
-            next response if return_metadata
-
-            Array(response.events).map { |pb| Models::Assets::AssetReportEvent.from_grpc(pb) }
-          end
+          request = Tinkoff::Public::Invest::Api::Contract::V1::GetAssetReportsRequest.new(
+            instrument_id: instrument_id,
+            from: timestamp_to_proto(from),
+            to: timestamp_to_proto(to)
+          )
+          execute_list_rpc(
+            method_name: :get_asset_reports,
+            request: request,
+            response_collection: :events,
+            model_class: Models::Assets::AssetReportEvent,
+            return_metadata: return_metadata
+          )
         end
       end
     end

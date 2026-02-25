@@ -5,7 +5,7 @@ module TbankGrpc
     # Сервис пользователя (UsersService): счета, информация, маржа.
     #
     # @see https://developer.tbank.ru/invest/api/users-service
-    class UsersService < BaseService
+    class UsersService < Unary::BaseUnaryService
       # Счета пользователя. GetAccounts.
       #
       # @param status [Symbol, nil] ACCOUNT_STATUS_* (:new, :open, :closed, :all)
@@ -20,11 +20,13 @@ module TbankGrpc
             prefix: 'ACCOUNT_STATUS'
           )
         end
-        execute_rpc(
+        execute_list_rpc(
           method_name: :get_accounts,
           request: request,
+          response_collection: :accounts,
+          model_class: Models::Accounts::Account,
           return_metadata: return_metadata
-        ) { |response| Array(response.accounts).map { |a| Models::Accounts::Account.from_grpc(a) } }
+        )
       end
 
       # Информация о пользователе. GetInfo.
@@ -48,7 +50,8 @@ module TbankGrpc
       # @return [Models::Accounts::MarginAttributes, Response]
       # @raise [TbankGrpc::Error]
       def get_margin_attributes(account_id:, return_metadata: false)
-        request = Tinkoff::Public::Invest::Api::Contract::V1::GetMarginAttributesRequest.new(account_id: account_id)
+        normalized_id = TbankGrpc::Normalizers::AccountIdNormalizer.normalize_single(account_id, strip: true)
+        request = Tinkoff::Public::Invest::Api::Contract::V1::GetMarginAttributesRequest.new(account_id: normalized_id)
         execute_rpc(
           method_name: :get_margin_attributes,
           request: request,

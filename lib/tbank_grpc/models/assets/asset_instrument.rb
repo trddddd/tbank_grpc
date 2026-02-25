@@ -7,6 +7,7 @@ module TbankGrpc
       class AssetInstrument < BaseModel
         grpc_simple :uid, :figi, :instrument_type, :ticker, :class_code,
                     :instrument_kind, :position_uid
+        serializable_attr :links
 
         inspectable_attrs :uid, :figi, :ticker, :class_code, :instrument_type
 

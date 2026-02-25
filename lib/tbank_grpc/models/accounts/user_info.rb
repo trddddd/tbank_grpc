@@ -4,6 +4,8 @@ module TbankGrpc
   module Models
     module Accounts
       # Ответ GetInfo: prem_status, qual_status, qualified_for_work_with, tariff, user_id, risk_level_code.
+      #
+      # @see BaseModel атрибуты и from_grpc
       class UserInfo < BaseModel
         grpc_simple :prem_status, :qual_status, :qualified_for_work_with, :tariff, :user_id, :risk_level_code
 

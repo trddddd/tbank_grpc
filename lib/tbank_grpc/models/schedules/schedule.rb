@@ -8,6 +8,8 @@ module TbankGrpc
         # @return [String, nil] код биржи/площадки
         attr_reader :exchange, :days
 
+        serializable_attr :exchange, :days
+
         inspectable_attrs :exchange, :days
 
         # @param proto [Google::Protobuf::MessageExts, nil]

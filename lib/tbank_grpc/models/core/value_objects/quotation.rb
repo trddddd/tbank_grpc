@@ -6,18 +6,19 @@ module TbankGrpc
       module ValueObjects
         # Котировка/число с фиксированной точностью (units + nano/10^9).
         # Для цен и объёмов в стакане; валидация nano и sign consistency как у google.type.Money.
+        # Основа — Data.define (Ruby 3.2+): иммутабельно, to_h/==/hash встроены.
+        # Сырые members: { units:, nano: } — через deconstruct_keys([:units, :nano]).
         #
         # Точность: используйте {#to_d} для расчётов.
         # {#to_f} — только для отображения; возможна потеря точности.
-        class Quotation < Base
+        Quotation = Data.define(:units, :nano) do
+          include Comparable
           include ValueObjects::UnitsNano
 
-          NANO_INT = UnitsNano::NANO_INT
-          NANO_MAX = UnitsNano::NANO_MAX
-          PRECISION = UnitsNano::PRECISION
-          ROUNDING = UnitsNano::ROUNDING
-
-          attr_reader :units, :nano
+          # Явно делегируем в семантику Data (сравнение по members), чтобы не полагаться на MRO с Comparable#==
+          def ==(other)
+            other.is_a?(self.class) && units == other.units && nano == other.nano
+          end
 
           def self.from_grpc(proto)
             return unless proto
@@ -37,19 +38,26 @@ module TbankGrpc
           end
 
           def initialize(units: 0, nano: 0)
-            units = units.to_i
-            nano = nano.to_i
-            validate!(units, nano)
-            super
+            u = units.to_i
+            n = nano.to_i
+
+            UnitsNano.validate_units_nano!(u, n)
+            super(units: u, nano: n)
           end
 
           def to_s
             to_d.to_s('F')
           end
 
-          # Сравнение только с Quotation (без приведения к BigDecimal для hot path)
-          def ==(other)
-            other.is_a?(self.class) && units == other.units && nano == other.nano
+          # Единообразный интерфейс с Money: { value: Float|BigDecimal }.
+          # precision: :big_decimal — value как BigDecimal, иначе to_f.
+          def to_h(precision: nil)
+            val = precision == :big_decimal ? to_d : to_f
+            { value: val }
+          end
+
+          def inspect
+            "#<#{self.class.name.split('::').last} #{self}>"
           end
 
           def <=>(other)
@@ -59,10 +67,6 @@ module TbankGrpc
             return cmp unless cmp&.zero?
 
             nano <=> other.nano
-          end
-
-          def hash
-            [units, nano].hash
           end
 
           def positive?
@@ -77,7 +81,6 @@ module TbankGrpc
             units.zero? && nano.zero?
           end
 
-          # Модуль величины (spread, отклонение от mid, stop-loss расстояние и т.п.)
           def abs
             return self if positive? || zero?
 
@@ -89,7 +92,7 @@ module TbankGrpc
           # @return [Quotation]
           def round_to_tick(tick_size_decimal)
             tick = BigDecimal(tick_size_decimal.to_s)
-            ticks = (to_d / tick).round(0, ROUNDING)
+            ticks = (to_d / tick).round(0, UnitsNano::ROUNDING)
             self.class.from_decimal(ticks * tick)
           end
 
@@ -114,21 +117,6 @@ module TbankGrpc
           end
 
           private
-
-          def validate!(units, nano)
-            unless nano.abs <= NANO_MAX
-              raise ArgumentError,
-                    "nano must be in [-#{NANO_MAX}, #{NANO_MAX}], got: #{nano}"
-            end
-            if units.positive? && nano.negative?
-              raise ArgumentError,
-                    "sign inconsistency: units=#{units} positive but nano=#{nano} negative"
-            end
-            return unless units.negative? && nano.positive?
-
-            raise ArgumentError,
-                  "sign inconsistency: units=#{units} negative but nano=#{nano} positive"
-          end
 
           def add_same_class(other)
             u, n = add_units_nano(other)

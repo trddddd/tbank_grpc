@@ -5,15 +5,22 @@ require 'json'
 module TbankGrpc
   # Пул gRPC-каналов (round-robin), создание канала с SSL/keepalive.
   # @api private
+  # rubocop:disable Metrics/ClassLength
   class ChannelManager
     ENDPOINTS = {
       production: 'invest-public-api.tbank.ru:443',
       sandbox: 'sandbox-invest-public-api.tbank.ru:443'
     }.freeze
+    # Legacy Tinkoff hosts для режима insecure (без TLS/сертов T-Bank)
+    ENDPOINTS_INSECURE = {
+      production: 'invest-public-api.tinkoff.ru:443',
+      sandbox: 'sandbox-invest-public-api.tinkoff.ru:443'
+    }.freeze
 
     # @param config [Hash] конфигурация (endpoint, cert_path, channel_pool_size и т.д.)
     def initialize(config)
       @config = config
+      @manager_id = "cm##{object_id.to_s(16)}"
       @pool_size = [@config.fetch(:channel_pool_size, 1).to_i, 1].max
       @channels = Array.new(@pool_size)
       @round_robin = 0
@@ -21,17 +28,21 @@ module TbankGrpc
 
       TbankGrpc.logger.debug(
         'ChannelManager initialized',
+        manager: manager_id,
         sandbox: @config[:sandbox],
         pool_size: @pool_size
       )
     end
+
+    # @return [String] стабильный идентификатор экземпляра менеджера для логов
+    attr_reader :manager_id
 
     # @return [GRPC::Core::Channel] канал из пула (round-robin)
     def channel
       @mutex.synchronize do
         idx = @round_robin % @pool_size
         @round_robin += 1
-        @channels[idx] ||= create_channel
+        @channels[idx] ||= create_channel(slot: idx)
       end
     end
 
@@ -40,10 +51,19 @@ module TbankGrpc
     def close
       @mutex.synchronize do
         @channels.compact.each_with_index do |ch, i|
-          TbankGrpc.logger.info("Closing gRPC channel (slot #{i})")
+          TbankGrpc.logger.info(
+            'Closing gRPC channel',
+            manager: manager_id,
+            slot: i,
+            channel_id: ch.object_id
+          )
           ch.close
         rescue StandardError => e
-          TbankGrpc.logger.warn("Error closing channel: #{e.message}")
+          TbankGrpc.logger.warn(
+            "Error closing channel: #{e.message}",
+            manager: manager_id,
+            slot: i
+          )
         end
         @channels.fill(nil)
       end
@@ -59,7 +79,21 @@ module TbankGrpc
       false
     end
 
-    def reset
+    # Сбрасывает все каналы в пуле.
+    #
+    # Важно: reset глобален для данного менеджера, поэтому затрагивает
+    # все сервисы/стримы, которые используют этот экземпляр ChannelManager.
+    #
+    # @param source [String, Symbol, nil] инициатор reset (для логов)
+    # @param reason [String, Symbol, nil] причина reset (для логов)
+    # @return [void]
+    def reset(source: nil, reason: nil)
+      TbankGrpc.logger.warn(
+        'Resetting channel manager (global for this manager instance)',
+        manager: manager_id,
+        source: source,
+        reason: reason
+      )
       close
     end
 
@@ -76,12 +110,17 @@ module TbankGrpc
       false
     end
 
-    def create_channel
+    def create_channel(slot:)
       channel_endpoint = endpoint
-      credentials = @config[:insecure] ? :this_channel_is_insecure : build_credentials
+      credentials = build_credentials
       channel_args = build_channel_args
 
-      TbankGrpc.logger.info("Creating gRPC channel to #{channel_endpoint}", sandbox: @config[:sandbox])
+      TbankGrpc.logger.info(
+        "Creating gRPC channel to #{channel_endpoint}",
+        manager: manager_id,
+        slot: slot,
+        sandbox: @config[:sandbox]
+      )
 
       GRPC::Core::Channel.new(channel_endpoint, channel_args, credentials)
     rescue ConfigurationError
@@ -94,14 +133,19 @@ module TbankGrpc
     end
 
     def endpoint
-      endpoint = @config[:endpoint] || (@config[:sandbox] ? ENDPOINTS[:sandbox] : ENDPOINTS[:production])
+      base = @config[:endpoint]
+      base ||= if @config[:insecure]
+                 @config[:sandbox] ? ENDPOINTS_INSECURE[:sandbox] : ENDPOINTS_INSECURE[:production]
+               else
+                 @config[:sandbox] ? ENDPOINTS[:sandbox] : ENDPOINTS[:production]
+               end
 
-      unless endpoint.match?(/\A[\w.-]+:\d+\z/)
+      unless base.match?(/\A[\w.-]+:\d+\z/)
         raise ConfigurationError,
-              "Invalid endpoint format: #{endpoint.inspect}. Expected host:port"
+              "Invalid endpoint format: #{base.inspect}. Expected host:port"
       end
 
-      endpoint
+      base
     end
 
     def build_credentials
@@ -163,4 +207,5 @@ module TbankGrpc
       }
     end
   end
+  # rubocop:enable Metrics/ClassLength
 end

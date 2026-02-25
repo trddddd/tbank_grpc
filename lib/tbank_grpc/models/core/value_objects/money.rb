@@ -1,23 +1,19 @@
 # frozen_string_literal: true
 
+require 'bigdecimal'
+
 module TbankGrpc
   module Models
     module Core
       module ValueObjects
         # Денежная сумма (units + nano/10^9), одна валюта.
         # Соответствует google.type.Money: nano в [-999_999_999, 999_999_999], согласованность знаков.
+        # Основа — Data.define (Ruby 3.2+): иммутабельно, to_h/==/hash встроены; to_h переопределён для сериализации.
         #
         # Точность: используйте {#to_d} для расчётов.
         # {#to_f} — только для отображения; возможна потеря точности.
-        class Money < Base
+        Money = Data.define(:units, :nano, :currency) do
           include ValueObjects::UnitsNano
-
-          NANO_INT = UnitsNano::NANO_INT
-          NANO_MAX = UnitsNano::NANO_MAX
-          PRECISION = UnitsNano::PRECISION
-          ROUNDING = UnitsNano::ROUNDING
-
-          attr_reader :units, :nano, :currency
 
           def self.from_grpc(proto)
             return unless proto
@@ -46,11 +42,12 @@ module TbankGrpc
           end
 
           def initialize(units:, nano:, currency:)
-            units = units.to_i
-            nano = nano.to_i
-            currency = currency.to_s
-            validate!(units, nano)
-            super
+            u = units.to_i
+            n = nano.to_i
+            c = currency.to_s
+
+            UnitsNano.validate_units_nano!(u, n)
+            super(units: u, nano: n, currency: c)
           end
 
           def value
@@ -64,6 +61,10 @@ module TbankGrpc
           def to_h(precision: nil)
             val = precision == :big_decimal ? to_d : to_f
             { value: val, currency: currency }
+          end
+
+          def inspect
+            "#<#{self.class.name.split('::').last} #{self}>"
           end
 
           def +(other)
@@ -94,15 +95,14 @@ module TbankGrpc
 
           def *(other)
             result = to_d * BigDecimal(other.to_s)
-            self.class.from_decimal(result.round(PRECISION, ROUNDING), currency)
+            self.class.from_decimal(result.round(UnitsNano::PRECISION, UnitsNano::ROUNDING), currency)
           end
 
           def /(other)
             result = to_d / BigDecimal(other.to_s)
-            self.class.from_decimal(result.round(PRECISION, ROUNDING), currency)
+            self.class.from_decimal(result.round(UnitsNano::PRECISION, UnitsNano::ROUNDING), currency)
           end
 
-          # Модуль суммы (для P&L, комиссий от оборота и т.п.)
           def abs
             return self if units.positive? || (units.zero? && nano >= 0)
 
@@ -110,21 +110,6 @@ module TbankGrpc
           end
 
           private
-
-          def validate!(units, nano)
-            unless nano.abs <= NANO_MAX
-              raise ArgumentError,
-                    "nano must be in [-#{NANO_MAX}, #{NANO_MAX}], got: #{nano}"
-            end
-            if units.positive? && nano.negative?
-              raise ArgumentError,
-                    "units=#{units} is positive but nano=#{nano} is negative"
-            end
-            return unless units.negative? && nano.positive?
-
-            raise ArgumentError,
-                  "units=#{units} is negative but nano=#{nano} is positive"
-          end
 
           def add_same_class(other)
             u, n = add_units_nano(other)

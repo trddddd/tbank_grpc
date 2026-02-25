@@ -11,7 +11,7 @@ module TbankGrpc
     # `GetAssetBy`, `GetAssetFundamentals`, `GetAssetReports`.
     #
     # @see https://developer.tbank.ru/invest/api/instruments-service
-    class InstrumentsService < BaseService
+    class InstrumentsService < Unary::BaseUnaryService
       include Instruments::Lookup
       include Instruments::Listings
       include Instruments::Schedules

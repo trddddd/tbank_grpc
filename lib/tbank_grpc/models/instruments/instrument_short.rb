@@ -3,7 +3,9 @@
 module TbankGrpc
   module Models
     module Instruments
-      # Короткая карточка инструмента из `FindInstrument`.
+      # Короткая карточка инструмента из FindInstrument / поиска.
+      #
+      # @see BaseModel атрибуты и from_grpc
       class InstrumentShort < BaseModel
         grpc_simple :isin, :figi, :ticker, :class_code, :instrument_type, :name,
                     :uid, :position_uid, :instrument_kind,

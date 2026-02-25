@@ -3,18 +3,25 @@
 require 'spec_helper'
 
 RSpec.describe TbankGrpc::Services::MarketDataService do
+  it 'inherits from Unary::BaseUnaryService' do
+    expect(described_class).to be < TbankGrpc::Services::Unary::BaseUnaryService
+  end
+
+  let(:channel) { instance_double(GRPC::Core::Channel) }
+  let(:config) { { token: 't', app_name: 'trddddd.tbank_grpc', sandbox: true } }
+  let(:grpc_stub) { instance_double(Tinkoff::Public::Invest::Api::Contract::V1::MarketDataService::Stub) }
+  let(:service) { described_class.new(channel, config) }
+
   before do
     TbankGrpc::ProtoLoader.require!('marketdata')
     allow_any_instance_of(described_class).to receive(:initialize_stub).and_return(grpc_stub)
   end
 
-  let(:channel) { instance_double(GRPC::Core::Channel) }
-  let(:config) { { token: 't', app_name: 'a', sandbox: true } }
-  let(:grpc_stub) { instance_double(Tinkoff::Public::Invest::Api::Contract::V1::MarketDataService::Stub) }
-  let(:service) { described_class.new(channel, config) }
-
-  it 'uses proto-first method naming for order book' do
+  it 'responds to get_order_book' do
     expect(service).to respond_to(:get_order_book)
+  end
+
+  it 'does not respond to getorderbook alias' do
     expect(service).not_to respond_to(:get_orderbook)
   end
 
@@ -24,10 +31,15 @@ RSpec.describe TbankGrpc::Services::MarketDataService do
       allow(grpc_stub).to receive(:get_order_book).and_return(response)
     end
 
-    it 'calls gRPC with instrument_id and depth and returns model' do
+    it 'returns OrderBook model' do
       result = service.get_order_book(instrument_id: 'BBG004730N88', depth: 10)
 
       expect(result).to be_a(TbankGrpc::Models::MarketData::OrderBook)
+    end
+
+    it 'calls gRPC with instrument_id and depth' do
+      service.get_order_book(instrument_id: 'BBG004730N88', depth: 10)
+
       expect(grpc_stub).to have_received(:get_order_book).with(
         have_attributes(instrument_id: 'BBG004730N88', depth: 10),
         anything
@@ -42,7 +54,7 @@ RSpec.describe TbankGrpc::Services::MarketDataService do
       )
     end
 
-    it 'calls gRPC with instrument_id, from, to and interval' do
+    it 'calls gRPC with instrument_id in request' do
       from_time = Time.utc(2025, 1, 1)
       to_time = Time.utc(2025, 1, 2)
 

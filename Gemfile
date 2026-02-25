@@ -5,6 +5,7 @@ source 'https://rubygems.org'
 gemspec
 
 group :development do
+  gem 'benchmark'
   gem 'bundler'
   gem 'grpc-tools', '~> 1.60'
   gem 'irb'

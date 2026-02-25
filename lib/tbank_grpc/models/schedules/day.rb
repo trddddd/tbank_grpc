@@ -12,6 +12,8 @@ module TbankGrpc
                        :evening_opening_auction_start_time, :evening_start_time, :evening_end_time,
                        :clearing_start_time, :clearing_end_time,
                        :premarket_start_time, :premarket_end_time
+        serializable_attr :intervals
+        inspectable_attrs :date, :is_trading_day, :start_time, :end_time, :intervals
 
         # Список внутридневных интервалов торгов.
         #
@@ -19,8 +21,6 @@ module TbankGrpc
         def intervals
           Array(@pb&.intervals).map { |i| Interval.from_grpc(i) }
         end
-
-        inspectable_attrs :date, :is_trading_day, :start_time, :end_time, :intervals
       end
     end
   end

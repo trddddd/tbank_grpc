@@ -17,21 +17,7 @@ module TbankGrpc
         # @return [Models::Instruments::Instrument, TbankGrpc::Response]
         # @raise [TbankGrpc::Error]
         def get_instrument_by(id_type:, id:, class_code: nil, return_metadata: false)
-          handle_request(method_name: 'InstrumentsService/GetInstrumentBy',
-                         return_metadata: return_metadata) do |return_op:|
-            request = Tinkoff::Public::Invest::Api::Contract::V1::InstrumentRequest.new(
-              id_type: resolve_instrument_id_type(id_type),
-              id: id,
-              class_code: class_code.to_s
-            )
-
-            @logger.debug('GetInstrumentBy request', id_type: id_type, id: id, class_code: class_code)
-
-            response = call_rpc(@stub, :get_instrument_by, request, return_metadata: return_op)
-            next response if return_metadata
-
-            Models::Instruments::Instrument.from_grpc(response.instrument)
-          end
+          instrument_by(:get_instrument_by, id_type, id, class_code, return_metadata)
         end
 
         # Акция по идентификатору. ShareBy.
@@ -43,18 +29,7 @@ module TbankGrpc
         # @return [Models::Instruments::Instrument, TbankGrpc::Response]
         # @raise [TbankGrpc::Error]
         def share_by(id_type:, id:, class_code: nil, return_metadata: false)
-          handle_request(method_name: 'InstrumentsService/ShareBy', return_metadata: return_metadata) do |return_op:|
-            request = Tinkoff::Public::Invest::Api::Contract::V1::InstrumentRequest.new(
-              id_type: resolve_instrument_id_type(id_type),
-              id: id,
-              class_code: class_code.to_s
-            )
-            @logger.debug('ShareBy request', id_type: id_type, id: id, class_code: class_code)
-            response = call_rpc(@stub, :share_by, request, return_metadata: return_op)
-            next response if return_metadata
-
-            Models::Instruments::Instrument.from_grpc(response.instrument)
-          end
+          instrument_by(:share_by, id_type, id, class_code, return_metadata)
         end
 
         # Поиск инструментов по текстовому запросу. FindInstrument.
@@ -66,25 +41,23 @@ module TbankGrpc
         # @return [Array<Models::Instruments::InstrumentShort>, TbankGrpc::Response]
         # @raise [TbankGrpc::Error]
         def find_instrument(query:, instrument_kind: nil, api_trade_available_flag: nil, return_metadata: false)
-          handle_request(method_name: 'InstrumentsService/FindInstrument',
-                         return_metadata: return_metadata) do |return_op:|
-            request_opts = { query: query, api_trade_available_flag: api_trade_available_flag }
-            if instrument_kind
-              request_opts[:instrument_kind] = resolve_enum(
-                Tinkoff::Public::Invest::Api::Contract::V1::InstrumentType,
-                instrument_kind,
-                prefix: 'INSTRUMENT_TYPE'
-              )
-            end
-            request = Tinkoff::Public::Invest::Api::Contract::V1::FindInstrumentRequest.new(**request_opts)
-
-            @logger.debug('FindInstrument request', query: query)
-
-            response = call_rpc(@stub, :find_instrument, request, return_metadata: return_op)
-            next response if return_metadata
-
-            Array(response.instruments).map { |pb| Models::Instruments::InstrumentShort.from_grpc(pb) }
+          request_opts = { query: query, api_trade_available_flag: api_trade_available_flag }
+          if instrument_kind
+            request_opts[:instrument_kind] = resolve_enum(
+              Tinkoff::Public::Invest::Api::Contract::V1::InstrumentType,
+              instrument_kind,
+              prefix: 'INSTRUMENT_TYPE'
+            )
           end
+          request = Tinkoff::Public::Invest::Api::Contract::V1::FindInstrumentRequest.new(**request_opts)
+          @logger.debug('FindInstrument request', query: query)
+          execute_list_rpc(
+            method_name: :find_instrument,
+            request: request,
+            response_collection: :instruments,
+            model_class: Models::Instruments::InstrumentShort,
+            return_metadata: return_metadata
+          )
         end
 
         # Облигация по идентификатору. BondBy.
@@ -114,15 +87,12 @@ module TbankGrpc
         private
 
         def instrument_by(method, id_type, id, class_code, return_metadata)
-          handle_request(method_name: "InstrumentsService/#{method}", return_metadata: return_metadata) do |return_op:|
-            request = Tinkoff::Public::Invest::Api::Contract::V1::InstrumentRequest.new(
-              id_type: resolve_instrument_id_type(id_type),
-              id: id,
-              class_code: class_code.to_s
-            )
-            response = call_rpc(@stub, method, request, return_metadata: return_op)
-            next response if return_metadata
-
+          request = Tinkoff::Public::Invest::Api::Contract::V1::InstrumentRequest.new(
+            id_type: resolve_instrument_id_type(id_type),
+            id: id,
+            class_code: class_code.to_s
+          )
+          execute_rpc(method_name: method, request: request, return_metadata: return_metadata) do |response|
             Models::Instruments::Instrument.from_grpc(response.instrument)
           end
         end

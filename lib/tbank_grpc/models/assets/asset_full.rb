@@ -51,13 +51,15 @@ module TbankGrpc
 
         # Сериализация в Hash с вложенными `instruments` и `brand`.
         #
+        # @param precision [Symbol, nil] формат денежных/ценовых полей
         # @return [Hash]
-        def to_h
+        def to_h(precision: nil)
           return {} unless @pb
 
           super.merge(
-            instruments: instruments.map(&:to_h),
-            brand: brand&.to_h
+            required_tests: required_tests,
+            instruments: instruments.map { |i| i.to_h(precision: precision) },
+            brand: brand&.to_h(precision: precision)
           ).compact
         end
       end

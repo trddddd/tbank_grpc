@@ -23,6 +23,7 @@ module TbankGrpc
 
         # @param candles [Array<Candle>, Candle]
         # @param instrument_id [String, nil]
+        # Коллекция не оборачивает proto напрямую (pb всегда nil), to_h реализован вручную.
         def initialize(candles = [], instrument_id: nil)
           super(nil)
           @candles = Array(candles)
@@ -42,8 +43,8 @@ module TbankGrpc
         #
         # @yieldparam candle [Candle]
         # @return [Enumerator, Array<Candle>]
-        def each(&block)
-          @candles.each(&block)
+        def each(&)
+          @candles.each(&)
         end
 
         # Размер коллекции.
@@ -139,22 +140,22 @@ module TbankGrpc
           self.class.new(sorted, instrument_id: instrument_id)
         end
 
-        # Сериализация коллекции в Hash.
+        # Сериализация коллекции в Hash (реестр BaseModel не используется, pb всегда nil).
         #
         # @param precision [Symbol, nil] формат цен: nil — Float, :big_decimal или :decimal — BigDecimal
         # @return [Hash]
         def to_h(precision: nil)
           {
             instrument_id: instrument_id,
-            candles: candles.map { |c| c.to_h(precision: precision) }
+            candles: @candles.map { |c| c.to_h(precision: precision) }
           }
         end
 
-        # Сериализация свечей в массив Hash.
+        # Сериализация свечей в массив Hash (не переопределяем Enumerable#to_a).
         #
         # @param precision [Symbol, nil] формат цен: nil — Float, :big_decimal или :decimal — BigDecimal
         # @return [Array<Hash>]
-        def to_a(precision: nil)
+        def serialize_candles(precision: nil)
           @candles.map { |c| c.to_h(precision: precision) }
         end
       end
