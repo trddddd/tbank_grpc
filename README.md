@@ -274,7 +274,7 @@ reports = client.instruments.get_asset_reports(
 
 > [!NOTE]
 > **Модели и вывод в консоли**  
-> В консоли (inspect / pretty_print) у моделей показываются только **часть полей** — выбранные для краткого отображения. Все поля: **`to_h`** или **`attributes`**. Для свечей и стакана: `to_h(precision: :big_decimal)` / `to_a(precision: :big_decimal)` — цены (open, high, low, close и т.д.) в виде **BigDecimal** вместо Float.
+> В консоли (inspect / pretty_print) у моделей показываются только **часть полей** — выбранные для краткого отображения. Все поля: **`to_h`** или **`attributes`**. Для свечей и стакана: `to_h(precision: :big_decimal)`; у коллекции свечей также `serialize_candles(precision: :big_decimal)` — цены (open, high, low, close и т.д.) в виде **BigDecimal** вместо Float.
 
 Подробнее: [Setup](docs/setup.md), [Configuration](docs/configuration.md), [Market Data Streaming](docs/market_data_streaming.md). 
 

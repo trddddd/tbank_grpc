@@ -10,7 +10,7 @@ module TbankGrpc
   #
   # @example
   #   TbankGrpc.configure do |c|
-  #     c.token = ENV['TINKOFF_TOKEN']
+  #     c.token = ENV['TBANK_TOKEN']
   #     c.app_name = 'trddddd.tbank_grpc'
   #   end
   #   client = TbankGrpc::Client.new
