@@ -1,0 +1,29 @@
+# Ослабленные метрики для example_bots. Подключается из корневого .rubocop.yml через inherit_from.
+# Пути относительны к этой папке.
+
+Style/Documentation:
+  Enabled: false
+
+Metrics/ClassLength:
+  Exclude:
+    - '**/*.rb'
+
+Metrics/MethodLength:
+  Exclude:
+    - '**/*.rb'
+
+Metrics/AbcSize:
+  Exclude:
+    - '**/*.rb'
+
+Metrics/CyclomaticComplexity:
+  Exclude:
+    - '**/*.rb'
+
+Metrics/PerceivedComplexity:
+  Exclude:
+    - '**/*.rb'
+
+Metrics/ParameterLists:
+  Exclude:
+    - '**/*.rb'
