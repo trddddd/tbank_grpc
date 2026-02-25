@@ -2,9 +2,9 @@
 
 module TbankGrpc
   module Streaming
-    module MarketData
-      module Subscriptions
-        # Ограничение частоты мутаций подписок (subscribe/unsubscribe) в скользящем окне.
+    module Core
+      module Limits
+        # Ограничение частоты мутаций в скользящем окне (подписки, ордера и т.д.).
         class MutationLimiter
           # @param max_mutations [Integer] максимум операций в окне
           # @param window_sec [Float, Integer] длина окна в секундах
@@ -14,16 +14,17 @@ module TbankGrpc
             @timestamps = []
           end
 
-          # Регистрирует одну мутацию. Вызывать перед каждой subscribe/unsubscribe.
+          # Регистрирует одну мутацию.
           # @return [void]
-          # @raise [InvalidArgumentError] при превышении лимита (например 100/мин)
+          # @raise [InvalidArgumentError] при превышении лимита
           def register!
             now = monotonic_time
             cutoff = now - @window_sec
             @timestamps.reject! { |timestamp| timestamp < cutoff }
 
             if @timestamps.length >= @max_mutations
-              raise InvalidArgumentError, 'Subscription mutation limit exceeded: 100 requests/min'
+              raise InvalidArgumentError,
+                    "Mutation limit exceeded: #{@max_mutations} requests per #{@window_sec}s window"
             end
 
             @timestamps << now

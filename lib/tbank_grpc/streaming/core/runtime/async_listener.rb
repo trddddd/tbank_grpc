@@ -7,8 +7,10 @@ module TbankGrpc
         # Запуск stream-listener в фоновом потоке.
         # @api private
         class AsyncListener
+          # Таймаут ожидания завершения потока в секундах при вызове #stop.
           JOIN_TIMEOUT_SEC = 3
 
+          # @return [Object] сервис с методами #listen и #stop
           attr_reader :service
 
           # @param service [Object] сервис с методами #listen и #stop
@@ -39,6 +41,8 @@ module TbankGrpc
             raise
           end
 
+          # Останавливает сервис и ждёт завершения потока до JOIN_TIMEOUT_SEC.
+          # Поток принудительно не убивается; при таймауте пишется предупреждение в лог.
           # @return [void]
           def stop
             thread = @mutex.synchronize do
@@ -81,6 +85,8 @@ module TbankGrpc
 
           private
 
+          # Вызывает service.listen в потоке; при ошибке логирует и пробрасывает.
+          # @return [void]
           def run
             TbankGrpc.logger.info('Async stream listener started', thread_id: Thread.current.object_id)
             @service.listen
@@ -95,6 +101,7 @@ module TbankGrpc
             TbankGrpc.logger.info('Async stream listener stopped', uptime_seconds: uptime)
           end
 
+          # @return [Float] секунды с момента последнего #start (0 если не запускали)
           def uptime
             return 0 unless @started_at
 

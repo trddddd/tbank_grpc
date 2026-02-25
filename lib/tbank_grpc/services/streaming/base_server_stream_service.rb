@@ -26,7 +26,6 @@ module TbankGrpc
         # @param stub [Object] gRPC stub
         # @param rpc_method [Symbol] имя RPC-метода (например :market_data_server_side_stream)
         # @param request [Object] proto-запрос
-        # @param method_full_name [String] ключ для deadline_overrides
         # @param as [Symbol] :proto или :model — формат payload в consumer
         # @param model_requires_block_message [String] сообщение при as: :model без блока
         # @param converter [Proc] (response, format:) -> payload для consumer
@@ -38,7 +37,6 @@ module TbankGrpc
           stub:,
           rpc_method:,
           request:,
-          method_full_name:,
           as:,
           model_requires_block_message:,
           converter:,
@@ -46,6 +44,7 @@ module TbankGrpc
         )
           # rubocop:enable Metrics/ParameterLists
           format = TbankGrpc::Normalizers::PayloadFormatNormalizer.normalize(as)
+          method_full_name = Grpc::MethodName.full_name(stub, rpc_method)
           deadline = stream_deadline(method_full_name)
           stream = stub.public_send(rpc_method, request, metadata: {}, deadline: deadline)
 
@@ -66,12 +65,14 @@ module TbankGrpc
         end
 
         # @param method_full_name [String, Symbol]
-        # @return [Time, nil] deadline из config[:deadline_overrides] или nil
+        # @return [Time, nil] deadline из config[:deadline_overrides], DEFAULT_DEADLINES по сервису или nil
         def stream_deadline(method_full_name)
           overrides = @config[:deadline_overrides] || {}
           seconds = overrides[method_full_name] ||
                     overrides[method_full_name.to_s] ||
                     overrides[method_full_name.to_sym]
+          service_name = method_full_name.to_s.split('/').first
+          seconds ||= Grpc::DeadlineResolver::DEFAULT_DEADLINES[service_name]
           return nil if seconds.nil?
 
           Time.now + seconds.to_f

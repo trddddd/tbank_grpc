@@ -211,9 +211,9 @@ module TbankGrpc
           end
 
           def open_stream
-            deadline = stream_deadline('MarketDataStreamService/MarketDataStream')
-            build_stub(@channel_manager.channel)
-              .market_data_stream(request_enumerator, metadata: {}, deadline: deadline)
+            stub = build_stub(@channel_manager.channel)
+            deadline = stream_deadline(Grpc::MethodName.full_name(stub, :market_data_stream))
+            stub.market_data_stream(request_enumerator, metadata: {}, deadline: deadline)
           end
 
           def request_enumerator

@@ -114,13 +114,14 @@ module TbankGrpc
             @lifecycle_mutex.synchronize { @running }
           end
 
-          # @return [Hash] метрики + queue_depth, worker_queue_depth, thread_pool_size
+          # @return [Hash] метрики + queue_depth, worker_queue_depth, thread_pool_size, generation (если loop запущен)
           def stats
             runtime = @lifecycle_mutex.synchronize { @runtime }
             queue_depth = runtime ? runtime[:queue].length : 0
             worker_queue_depth = runtime ? runtime[:worker_queue].length : 0
-            @metrics.to_h(queue_depth: queue_depth, worker_queue_depth: worker_queue_depth)
-                    .merge(thread_pool_size: @thread_pool_size)
+            base = @metrics.to_h(queue_depth: queue_depth, worker_queue_depth: worker_queue_depth)
+                           .merge(thread_pool_size: @thread_pool_size)
+            runtime ? base.merge(generation: runtime[:generation]) : base
           end
 
           private

@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-RSpec.describe TbankGrpc::TrackingId do
+RSpec.describe TbankGrpc::Grpc::TrackingId do
   describe '.extract' do
     it 'returns nil for nil metadata' do
       expect(described_class.extract(nil)).to be_nil

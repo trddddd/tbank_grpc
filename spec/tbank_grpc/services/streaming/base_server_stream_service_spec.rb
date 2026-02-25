@@ -4,7 +4,9 @@ require 'spec_helper'
 
 RSpec.describe TbankGrpc::Services::Streaming::BaseServerStreamService do
   let(:channel_manager) { instance_double(TbankGrpc::ChannelManager, channel: :channel) }
-  let(:config) { { deadline_overrides: { 'svc/method' => 1.5 } } }
+  # Full name format как в Grpc::MethodName.full_name (ServiceName/MethodCamelCase)
+  let(:config) { { deadline_overrides: { 'InstrumentsService/ServerStream' => 1.5 } } }
+  let(:stub_class) { Class.new { def self.name = 'TbankGrpc::InstrumentsService::Stub' } }
 
   let(:service_class) do
     Class.new(described_class) do
@@ -21,7 +23,7 @@ RSpec.describe TbankGrpc::Services::Streaming::BaseServerStreamService do
   subject(:service) { service_class.new(channel_manager: channel_manager, config: config, interceptors: []) }
 
   describe '#run_server_side_stream' do
-    let(:stub) { double('stub') }
+    let(:stub) { double('stub').tap { |s| allow(s).to receive(:class).and_return(stub_class) } }
     let(:request) { double('request') }
 
     it 'returns raw stream enumerator without block for as: :proto' do
@@ -32,7 +34,6 @@ RSpec.describe TbankGrpc::Services::Streaming::BaseServerStreamService do
         stub: stub,
         rpc_method: :server_stream,
         request: request,
-        method_full_name: 'svc/method',
         as: :proto,
         model_requires_block_message: 'requires block',
         converter: ->(response, format:) { [response, format] }
@@ -53,7 +54,6 @@ RSpec.describe TbankGrpc::Services::Streaming::BaseServerStreamService do
           stub: stub,
           rpc_method: :server_stream,
           request: request,
-          method_full_name: 'svc/method',
           as: :model,
           model_requires_block_message: 'requires block',
           converter: ->(_response, format:) { format }
@@ -69,7 +69,6 @@ RSpec.describe TbankGrpc::Services::Streaming::BaseServerStreamService do
         stub: stub,
         rpc_method: :server_stream,
         request: request,
-        method_full_name: 'svc/method',
         as: :model,
         model_requires_block_message: 'requires block',
         converter: lambda { |response, format:|
@@ -89,7 +88,6 @@ RSpec.describe TbankGrpc::Services::Streaming::BaseServerStreamService do
           stub: stub,
           rpc_method: :server_stream,
           request: request,
-          method_full_name: 'svc/method',
           as: :proto,
           model_requires_block_message: 'requires block',
           converter: ->(response, format:) { [response, format] }
@@ -100,14 +98,14 @@ RSpec.describe TbankGrpc::Services::Streaming::BaseServerStreamService do
 
   describe '#stream_deadline' do
     it 'uses configured override in seconds' do
-      deadline = service.deadline_for('svc/method')
+      deadline = service.deadline_for('InstrumentsService/ServerStream')
 
       expect(deadline).to be_a(Time)
       expect(deadline).to be > Time.now
     end
 
     it 'returns nil when override is absent' do
-      expect(service.deadline_for('unknown/method')).to be_nil
+      expect(service.deadline_for('UnknownService/SomeMethod')).to be_nil
     end
   end
 end

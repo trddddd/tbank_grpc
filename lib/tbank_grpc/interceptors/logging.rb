@@ -29,7 +29,7 @@ module TbankGrpc
             log_success(method, nil, Time.now - start_time)
             result
           rescue GRPC::BadStatus => e
-            tracking_id = TbankGrpc::TrackingId.extract(e.metadata)
+            tracking_id = Grpc::TrackingId.extract(e.metadata)
             log_error(method, tracking_id, Time.now - start_time, e)
             raise
           end

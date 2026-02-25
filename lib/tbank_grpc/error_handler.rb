@@ -9,7 +9,7 @@ module TbankGrpc
     # @return [Error] экземпляр InvalidArgumentError, NotFoundError и т.д.
     def self.wrap_grpc_error(grpc_error, context = {})
       tracking_id = begin
-        TrackingId.extract(grpc_error.metadata) || 'unknown'
+        Grpc::TrackingId.extract(grpc_error.metadata) || 'unknown'
       rescue StandardError
         "unknown-#{SecureRandom.hex(4)}"
       end

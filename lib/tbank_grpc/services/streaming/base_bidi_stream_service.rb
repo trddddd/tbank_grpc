@@ -239,6 +239,8 @@ module TbankGrpc
           seconds = overrides[method_full_name] ||
                     overrides[method_full_name.to_s] ||
                     overrides[method_full_name.to_sym]
+          service_name = method_full_name.to_s.split('/').first
+          seconds ||= Grpc::DeadlineResolver::DEFAULT_DEADLINES[service_name]
           return nil if seconds.nil?
 
           Time.now + seconds.to_f

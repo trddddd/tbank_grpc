@@ -2,7 +2,7 @@
 
 require 'spec_helper'
 
-RSpec.describe TbankGrpc::Streaming::MarketData::Subscriptions::MutationLimiter do
+RSpec.describe TbankGrpc::Streaming::Core::Limits::MutationLimiter do
   subject(:limiter) { described_class.new(max_mutations: 100, window_sec: 60) }
 
   it 'raises after the configured mutation limit' do

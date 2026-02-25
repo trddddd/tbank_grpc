@@ -22,7 +22,7 @@ module TbankGrpc
             @params_normalizer = params_normalizer
             @request_factory = request_factory || RequestFactory.new
             @registry = registry || Registry.new(max_subscriptions: MAX_SUBSCRIPTIONS)
-            @mutation_limiter = mutation_limiter || MutationLimiter.new(
+            @mutation_limiter = mutation_limiter || TbankGrpc::Streaming::Core::Limits::MutationLimiter.new(
               max_mutations: MAX_SUBSCRIPTION_MUTATIONS_PER_MINUTE,
               window_sec: RATE_WINDOW_SEC
             )

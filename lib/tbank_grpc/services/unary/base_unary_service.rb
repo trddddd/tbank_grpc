@@ -33,7 +33,7 @@ module TbankGrpc
         # @yield [response] блок для кастомного маппинга ответа (имеет приоритет над model)
         # @return [Object, TbankGrpc::Response] ответ (proto, модель или результат блока)
         def execute_rpc(method_name:, request:, stub: @stub, return_metadata: false, model: nil, &response_mapper)
-          method_full_name = derive_method_full_name(stub, method_name)
+          method_full_name = Grpc::MethodName.full_name(stub, method_name)
           handle_request(method_name: method_full_name, return_metadata: return_metadata) do |return_op:|
             response = call_rpc(stub, method_name, request, return_metadata: return_op)
             next response if return_metadata
@@ -109,12 +109,6 @@ module TbankGrpc
           raise NotImplementedError, 'Subclasses must implement initialize_stub'
         end
 
-        def derive_method_full_name(stub, method_name)
-          service_short = stub.class.name.split('::')[-2]
-          method_camel = method_name.to_s.split('_').map(&:capitalize).join
-          "#{service_short}/#{method_camel}"
-        end
-
         def handle_request(method_name:, return_metadata: false)
           RateLimitHandler.with_retry(method_name: method_name) do
             if return_metadata
@@ -135,8 +129,8 @@ module TbankGrpc
         end
 
         def call_rpc(stub, method_name, request, return_metadata:)
-          method_full_name = derive_method_full_name(stub, method_name)
-          deadline = DeadlineResolver.deadline_for(method_full_name, @config)
+          method_full_name = Grpc::MethodName.full_name(stub, method_name)
+          deadline = Grpc::DeadlineResolver.deadline_for(method_full_name, @config)
 
           options = { metadata: {} }
           options[:deadline] = deadline if deadline
@@ -146,7 +140,7 @@ module TbankGrpc
         end
 
         def extract_tracking_id(grpc_error)
-          raw = TrackingId.extract(grpc_error.metadata)
+          raw = Grpc::TrackingId.extract(grpc_error.metadata)
           raw.nil? ? 'unknown' : raw.to_s
         end
 
@@ -164,7 +158,7 @@ module TbankGrpc
         end
 
         def extract_tracking_id_from_metadata(metadata)
-          raw = TrackingId.extract(metadata)
+          raw = Grpc::TrackingId.extract(metadata)
           raw&.to_s
         end
 

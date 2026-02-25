@@ -37,7 +37,6 @@ module TbankGrpc
               stub: build_stub(@channel_manager.channel),
               rpc_method: :market_data_server_side_stream,
               request: request,
-              method_full_name: 'MarketDataStreamService/MarketDataServerSideStream',
               as: as,
               model_requires_block_message: MODEL_REQUIRES_BLOCK_MESSAGE,
               converter: lambda { |response, format:|

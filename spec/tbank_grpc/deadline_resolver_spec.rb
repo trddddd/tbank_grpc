@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-RSpec.describe TbankGrpc::DeadlineResolver do
+RSpec.describe TbankGrpc::Grpc::DeadlineResolver do
   describe '.deadline_for' do
     it 'returns nil when method_full_name is nil' do
       expect(described_class.deadline_for(nil, {})).to be_nil

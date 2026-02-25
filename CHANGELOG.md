@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.2.0] - 2026-02-22
 
 ### Added
+- `Grpc::MethodName.full_name(stub, rpc_method)` — модуль в `grpc/method_name.rb` для формирования строки "ServiceName/MethodName" из gRPC stub и имени метода (deadline, логи, rate limit)
 - `Normalizers::AccountIdNormalizer` — normalize_single / normalize_list (strip, required, uniq); используется в UsersService#get_margin_attributes
 - `Normalizers::TickerNormalizer` — normalize(value) → to_s.strip.upcase; используется в InstrumentClassMethods и InstrumentsHelper
 - `Normalizers::StreamNameNormalizer` — normalize(value, default: 'stream'); используется в ListenLoop
@@ -23,6 +24,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Большой пакет тестов для streaming-слоя, `MarketDataStreamService`, `OrderBook` и `Instrument`
 
 ### Changed
+- Streaming: полное имя RPC для дедлайна выводится из stub + rpc_method; константы и параметр `method_full_name` убраны; в обоих базах добавлен fallback на `Grpc::DeadlineResolver::DEFAULT_DEADLINES` по имени сервиса; unary и streaming используют `Grpc::MethodName.full_name` вместо дублирования логики
+- **Breaking:** `DeadlineResolver` и `TrackingId` перенесены в слой `grpc/`: теперь `TbankGrpc::Grpc::DeadlineResolver` и `TbankGrpc::Grpc::TrackingId`; старые пути удалены
 - `Converters::Money.to_decimal` задокументирован как публичный API (BigDecimal для точных расчётов)
 - Quotation и Money используют UnitsNano для to_f/to_decimal/decimal_to_pb, остаются только обёртки и тип proto
 - Извлечение tracking_id унифицировано: ErrorHandler и Interceptors::Logging используют `TrackingId.extract`; дублирующий ErrorHandler.extract_tracking_id удалён
