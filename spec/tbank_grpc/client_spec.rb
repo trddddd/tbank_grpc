@@ -95,6 +95,18 @@ RSpec.describe TbankGrpc::Client do
     expect(client.market_data).to equal(client.market_data)
   end
 
+  it 'exposes #operations as OperationsService' do
+    channel = GRPC::Core::Channel.new('localhost:50051', {}, :this_channel_is_insecure)
+    allow(client.channel_manager).to receive(:channel).and_return(channel)
+    expect(client.operations).to be_a(TbankGrpc::Services::OperationsService)
+  end
+
+  it 'returns same instance for #operations' do
+    channel = GRPC::Core::Channel.new('localhost:50051', {}, :this_channel_is_insecure)
+    allow(client.channel_manager).to receive(:channel).and_return(channel)
+    expect(client.operations).to equal(client.operations)
+  end
+
   it 'exposes #market_data_stream as MarketDataStreamService' do
     expect(client.market_data_stream).to be_a(TbankGrpc::Services::MarketDataStreamService)
   end

@@ -190,6 +190,41 @@ client.close
 - Для stream RPC по умолчанию deadline не выставляется; при необходимости задаётся через `config.deadline_overrides`.
 - `GRPC::PermissionDenied` / `GRPC::Unauthenticated` останавливают stream: после обновления токена запустите listen заново.
 
+## OperationsService
+
+Портфель, позиции, операции по счёту. Доступ: `client.operations`.
+
+```ruby
+account_id = client.users.get_accounts(status: :open).first.id
+
+# Портфель по счёту (опционально currency: :rub, :usd, :eur)
+portfolio = client.operations.get_portfolio(account_id: account_id)
+portfolio.total                    # Float от total_amount_portfolio
+portfolio.positions                # массив Models::Operations::PortfolioPosition
+portfolio.to_h(precision: :big_decimal)
+
+# Позиции: деньги, бумаги, фьючерсы, опционы
+positions = client.operations.get_positions(account_id: account_id)
+positions.money                    # массив Money по валютам
+positions.securities               # массив Hash по ценным бумагам
+positions.money_by_currency        # Hash валюта => Money
+
+# Операции за период (GetOperations — возвращает proto с полем operations)
+from = Time.now - 30 * 24 * 3600
+to = Time.now
+resp = client.operations.get_operations(account_id: account_id, from: from, to: to)
+resp.operations.each { |op| puts op }
+
+# Операции по курсору (пагинация, фильтры)
+cursor_resp = client.operations.get_operations_by_cursor(
+  account_id: account_id,
+  from: from,
+  to: to,
+  limit: 100,
+  state: :OPERATION_STATE_EXECUTED
+)
+```
+
 ## InstrumentsService
 
 Сервис инструментов: поиск по FIGI/тикеру, списки акций/облигаций/фьючерсов, расписания, купоны, дивиденды, активы. Доступ: `client.instruments`.

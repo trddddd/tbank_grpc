@@ -6,6 +6,8 @@ module TbankGrpc
   module Models
     module Core
       module ValueObjects
+        CURRENCY_SYMBOLS = { 'RUB' => '₽', 'USD' => '$', 'EUR' => '€' }.freeze
+
         # Денежная сумма (units + nano/10^9), одна валюта.
         # Соответствует google.type.Money: nano в [-999_999_999, 999_999_999], согласованность знаков.
         # Основа — Data.define (Ruby 3.2+): иммутабельно, to_h/==/hash встроены; to_h переопределён для сериализации.
@@ -55,7 +57,12 @@ module TbankGrpc
           end
 
           def to_s
-            currency ? "#{to_d.to_s('F')} #{currency}" : to_d.to_s('F')
+            raw = to_d.to_s('F').sub(/\.0+\z/, '')
+            formatted = raw.gsub(/(\d)(?=(\d{3})+(?!\d))/, '\1 ')
+            return formatted if currency.nil? || currency.empty?
+
+            symbol = ValueObjects::CURRENCY_SYMBOLS.fetch(currency.upcase, currency)
+            "#{formatted} #{symbol}"
           end
 
           def to_h(precision: nil)
