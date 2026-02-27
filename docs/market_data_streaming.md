@@ -101,6 +101,8 @@
 
 ## Reconnect и watchdog (bidirectional)
 
+**Явный `client.reconnect`.** Если вызывается `client.reconnect` (например после `client.close`), клиент останавливает активный market_data stream, закрывает каналы и обнуляет кэш сервисов (`@market_data_stream = nil`). Активные итерации по стриму (listen/listen_async) при этом обрываются — канал закрыт. После reconnect нужно заново подписаться и запустить стрим (`subscribe_*` + `listen` / `listen_async`). Внутренний reconnect (ниже) этого не делает — там переподключается тот же экземпляр сервиса.
+
 - stream работает циклом `listen`
 - при транспортных ошибках выполняется reconnect
 - стратегия: exponential backoff + jitter (`0.5..1.5`), по умолчанию до 5 попыток подряд
@@ -173,6 +175,7 @@ Watchdog:
 
 ## Ключевые нюансы, которые часто путают
 
+- После **`client.reconnect`** market_data stream обнуляется; активный listen обрывается — подписки и listen нужно запускать заново (см. раздел «Reconnect и watchdog»).
 - В bidirectional режиме запросы подписок и `my_subscriptions` уходят через внутреннюю очередь: это асинхронная отправка, не мгновенный RPC-ответ.
 - В `stats[:reconnects]` учитываются попытки reconnect в listen-цикле; это не то же самое, что «число успешных переподключений».
 - `EventLoop` выполняет callback'и в пуле потоков: порядок завершения callback'ов не гарантирован.

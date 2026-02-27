@@ -2,7 +2,7 @@
 
 module TbankGrpc
   # Конфигурация клиента: токен, эндпоинт, таймауты, SSL, логирование.
-  # Задаётся через {TbankGrpc.configure} или при создании {Client}.
+  # Задаётся через {TbankGrpc.configure} или при создании {TbankGrpc::Client}.
   class Configuration
     # @!attribute [rw] token
     #   @return [String, nil] OAuth-токен T-Bank Invest API

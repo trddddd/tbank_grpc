@@ -87,6 +87,19 @@ module TbankGrpc
       end
     end
 
+    # Доступ к сервису операций (портфель, позиции, операции, отчёты).
+    #
+    # @return [Services::OperationsService]
+    def operations
+      @services_mutex.synchronize do
+        @operations ||= Services::OperationsService.new(
+          @channel_manager.channel,
+          @config,
+          interceptors: @interceptors
+        )
+      end
+    end
+
     # Доступ к bidirectional stream сервиса рыночных данных.
     # Использует отдельный ChannelManager (stream_channel_manager(:market_data)), не общий пул unary.
     #
@@ -227,7 +240,8 @@ module TbankGrpc
     end
 
     # Пересоздаёт канал и кэш сервисов после close. Нужен только если канал был явно закрыт.
-    # В обычной работе gRPC сам переподключается;
+    # В обычной работе gRPC сам переподключается.
+    # После reconnect активные итерации по market_data stream могут упасть — запускайте стрим заново.
     def reconnect
       stop_active_streams
       close_all_channel_managers
@@ -253,6 +267,7 @@ module TbankGrpc
         @instruments = nil
         @market_data = nil
         @market_data_stream = nil
+        @operations = nil
         @helpers = nil
       end
     end

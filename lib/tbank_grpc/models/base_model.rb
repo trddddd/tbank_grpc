@@ -23,7 +23,7 @@ module TbankGrpc
       # Используется: 1) как fallback в {#to_h}, когда у класса нет зарегистрированных атрибутов;
       # 2) при явном вызове для отладки или дампа произвольного proto без модели.
       #
-      # @param proto [Google::Protobuf::MessageExts, nil] сообщение (по умолчанию текущий @pb)
+      # @param proto [Google::Protobuf::MessageExts, nil] сообщение (по умолчанию текущий pb)
       # @return [Hash]
       def pb_to_h(proto = @pb)
         return {} unless proto
