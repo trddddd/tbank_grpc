@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.3] - 2026-02-27
+
+### Added
+- Ленивая константа `TbankGrpc::CONTRACT_V1` — единая точка входа к модулю контракта API (proto)
+- `Streaming::Operations::Responses::ResponseConverter` — конвертация ответов операционных стримов (portfolio/positions/operations) в доменные модели
+- `ModelMapper#convert_response(response, format:)` — унифицированный метод конвертации для market data server-side stream
+- Стриминг операций: `OperationsStreamService`, `Streaming::Operations::ServerStreamService`, фасад в `Client`
+- Модели стрима операций: `Models::Operations::OperationData`, `Models::Operations::PositionData`
+- `Money.from_grpc_or_zero(proto, default_currency)` — возвращает Money из proto или нулевую сумму в заданной валюте при отсутствии proto
+
+### Changed
+- Базовые streaming-классы и market_data server/bidi — доработки для переиспользования в operations stream
+- Убрано дублирование `type_module`: метод удалён из базовых стрим-классов, везде используется `TbankGrpc::CONTRACT_V1` напрямую
+- `Operations::ServerStreamService` — логика конвертации вынесена из сервиса в `ResponseConverter`; `converter:` теперь лямбда через `@response_converter`
+- `MarketData::ServerStreamService` — `converter:` переключён на `@model_mapper.convert_response`; метод `convert_response` удалён из `RequestBuilder` (SRP)
+
 ## [0.2.2] - 2026-02-27
 
 ### Added

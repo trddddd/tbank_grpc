@@ -23,6 +23,13 @@ module TbankGrpc
 
         private
 
+        # Создаёт gRPC stub для канала. Подклассы реализуют.
+        # @param channel [GRPC::Core::Channel]
+        # @return [Object] gRPC stub
+        def initialize_stub(channel)
+          raise NotImplementedError, 'Subclasses must implement initialize_stub(channel)'
+        end
+
         # @param stub [Object] gRPC stub
         # @param rpc_method [Symbol] имя RPC-метода (например :market_data_server_side_stream)
         # @param request [Object] proto-запрос

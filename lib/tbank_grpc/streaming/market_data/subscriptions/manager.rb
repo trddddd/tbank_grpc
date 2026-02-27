@@ -4,12 +4,10 @@ module TbankGrpc
   module Streaming
     module MarketData
       module Subscriptions
-        # rubocop:disable Metrics/ClassLength
         class Manager
           MAX_SUBSCRIPTIONS = 300
           MAX_SUBSCRIPTION_MUTATIONS_PER_MINUTE = 100
           RATE_WINDOW_SEC = 60.0
-          TYPE_MODULE = Tinkoff::Public::Invest::Api::Contract::V1
 
           attr_reader :request_queue
 
@@ -166,17 +164,17 @@ module TbankGrpc
               instrument_id: @params_normalizer.normalize_instrument_id(params[:instrument_id]),
               depth: @params_normalizer.normalize_depth(params.fetch(:depth, 20)),
               order_book_type: @params_normalizer.resolve_order_book_type(params[:order_book_type],
-                                                                          type_module: TYPE_MODULE)
+                                                                          type_module: TbankGrpc::CONTRACT_V1)
             }
           end
 
           def normalize_candles_params(params)
             {
               instrument_id: @params_normalizer.normalize_instrument_id(params[:instrument_id]),
-              interval: @params_normalizer.resolve_subscription_interval(params[:interval], type_module: TYPE_MODULE),
+              interval: @params_normalizer.resolve_subscription_interval(params[:interval], type_module: TbankGrpc::CONTRACT_V1),
               waiting_close: !params.fetch(:waiting_close, false).nil?,
               candle_source_type: @params_normalizer.resolve_candle_source(params[:candle_source_type],
-                                                                           type_module: TYPE_MODULE)
+                                                                           type_module: TbankGrpc::CONTRACT_V1)
             }
           end
 
@@ -184,12 +182,11 @@ module TbankGrpc
             values = params[:instrument_ids] || params[:instrument_id]
             {
               instrument_ids: @params_normalizer.normalize_instrument_ids(values),
-              trade_source: @params_normalizer.resolve_trade_source(params[:trade_source], type_module: TYPE_MODULE),
+              trade_source: @params_normalizer.resolve_trade_source(params[:trade_source], type_module: TbankGrpc::CONTRACT_V1),
               with_open_interest: !params.fetch(:with_open_interest, false).nil?
             }
           end
         end
-        # rubocop:enable Metrics/ClassLength
       end
     end
   end

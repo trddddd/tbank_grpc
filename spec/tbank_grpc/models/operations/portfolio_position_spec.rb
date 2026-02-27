@@ -5,14 +5,14 @@ require 'spec_helper'
 RSpec.describe TbankGrpc::Models::Operations::PortfolioPosition do
   before { TbankGrpc::ProtoLoader.require!('operations') }
 
-  let(:proto_class) { Tinkoff::Public::Invest::Api::Contract::V1::PortfolioPosition }
+  let(:proto_class) { TbankGrpc::CONTRACT_V1::PortfolioPosition }
   let(:money_proto) do
-    Tinkoff::Public::Invest::Api::Contract::V1::MoneyValue.new(
+    TbankGrpc::CONTRACT_V1::MoneyValue.new(
       currency: 'RUB', units: 250, nano: 100_000_000
     )
   end
   let(:quotation_proto) do
-    Tinkoff::Public::Invest::Api::Contract::V1::Quotation.new(units: 10, nano: 500_000_000)
+    TbankGrpc::CONTRACT_V1::Quotation.new(units: 10, nano: 500_000_000)
   end
 
   let(:proto) do

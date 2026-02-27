@@ -36,6 +36,16 @@ module TbankGrpc
               map(:last_price, response.last_price) ||
               map(:open_interest, response.open_interest)
           end
+
+          # Конвертация proto-ответа в модель с учётом формата (для server-side stream).
+          # @param response [MarketDataResponse] proto-ответ
+          # @param format [Symbol] :proto или :model
+          # @return [Object, nil] модель, proto-ответ или nil
+          def convert_response(response, format:)
+            return response if format == :proto
+
+            first_model_from_response(response)
+          end
         end
       end
     end

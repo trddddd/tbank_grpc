@@ -138,6 +138,13 @@ module TbankGrpc
 
         private
 
+        # Создаёт gRPC stub для канала. Подклассы реализуют.
+        # @param channel [GRPC::Core::Channel]
+        # @return [Object] gRPC stub
+        def initialize_stub(channel)
+          raise NotImplementedError, 'Subclasses must implement initialize_stub(channel)'
+        end
+
         def dispatch_and_track(response)
           touch_last_event
           dispatch_response(response)

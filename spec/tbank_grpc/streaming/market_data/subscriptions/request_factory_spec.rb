@@ -5,7 +5,7 @@ require 'spec_helper'
 RSpec.describe TbankGrpc::Streaming::MarketData::Subscriptions::RequestFactory do
   subject(:factory) { described_class.new }
 
-  let(:types) { Tinkoff::Public::Invest::Api::Contract::V1 }
+  let(:types) { TbankGrpc::CONTRACT_V1 }
 
   before { TbankGrpc::ProtoLoader.require!('marketdata') }
 

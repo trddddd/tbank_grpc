@@ -5,7 +5,7 @@ require 'spec_helper'
 RSpec.describe TbankGrpc::Streaming::MarketData::Responses::ModelMapper do
   subject(:mapper) { described_class.new }
 
-  let(:types) { Tinkoff::Public::Invest::Api::Contract::V1 }
+  let(:types) { TbankGrpc::CONTRACT_V1 }
 
   before { TbankGrpc::ProtoLoader.require!('marketdata') }
 
@@ -29,5 +29,22 @@ RSpec.describe TbankGrpc::Streaming::MarketData::Responses::ModelMapper do
 
     expect(model).to be_a(TbankGrpc::Models::MarketData::LastPrice)
     expect(model.instrument_uid).to eq('uid2')
+  end
+
+  it 'returns proto response as-is for format: :proto' do
+    response = types::MarketDataResponse.new(candle: types::Candle.new(instrument_uid: 'uid3'))
+
+    result = mapper.convert_response(response, format: :proto)
+
+    expect(result).to eq(response)
+  end
+
+  it 'converts response to model for format: :model' do
+    response = types::MarketDataResponse.new(candle: types::Candle.new(instrument_uid: 'uid3'))
+
+    model = mapper.convert_response(response, format: :model)
+
+    expect(model).to be_a(TbankGrpc::Models::MarketData::Candle)
+    expect(model.instrument_uid).to eq('uid3')
   end
 end

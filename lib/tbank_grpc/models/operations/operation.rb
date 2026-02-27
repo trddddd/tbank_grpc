@@ -24,11 +24,12 @@ module TbankGrpc
         private
 
         def trade_to_h(trade)
+          currency = trade.price&.currency || @pb&.currency
           {
             trade_id: trade.trade_id,
             date_time: trade.date_time ? timestamp_to_time(trade.date_time) : nil,
             quantity: trade.quantity,
-            price: trade.price ? Core::ValueObjects::Money.from_grpc(trade.price) : nil
+            price: Core::ValueObjects::Money.from_grpc_or_zero(trade.price, currency)
           }.compact
         end
       end

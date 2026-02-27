@@ -4,7 +4,7 @@ module TbankGrpc
   # Клиент T-Bank Invest API. Точка входа для сервисов и хелперов.
   #
   # Unary-сервисы (users, instruments, market_data) используют общий {#channel_manager}.
-  # Стримы (market_data_stream) — отдельный менеджер через {#stream_channel_manager};
+  # Стримы (market_data_stream, operations_stream) — отдельный менеджер через {#stream_channel_manager};
   # один channel технически мог бы обслуживать и unary, и стримы; разделение нужно для
   # изоляции lifecycle, reconnect и пулов.
   #
@@ -111,6 +111,20 @@ module TbankGrpc
           config: @config,
           interceptors: @interceptors,
           thread_pool_size: @thread_pool_size
+        )
+      end
+    end
+
+    # Доступ к server-side stream сервиса операций.
+    # Использует отдельный ChannelManager (stream_channel_manager(:operations)), не общий пул unary.
+    #
+    # @return [Services::OperationsStreamService]
+    def operations_stream
+      @services_mutex.synchronize do
+        @operations_stream ||= Services::OperationsStreamService.new(
+          channel_manager: stream_channel_manager(:operations),
+          config: @config,
+          interceptors: @interceptors
         )
       end
     end
@@ -268,6 +282,7 @@ module TbankGrpc
         @market_data = nil
         @market_data_stream = nil
         @operations = nil
+        @operations_stream = nil
         @helpers = nil
       end
     end

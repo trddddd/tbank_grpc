@@ -9,7 +9,7 @@ RSpec.describe TbankGrpc::Services::UsersService do
 
   let(:channel) { instance_double(GRPC::Core::Channel) }
   let(:config) { { token: 't', app_name: 'trddddd.tbank_grpc', sandbox: false } }
-  let(:grpc_stub) { instance_double(Tinkoff::Public::Invest::Api::Contract::V1::UsersService::Stub) }
+  let(:grpc_stub) { instance_double(TbankGrpc::CONTRACT_V1::UsersService::Stub) }
   let(:service) { described_class.new(channel, config) }
 
   before do
@@ -20,7 +20,7 @@ RSpec.describe TbankGrpc::Services::UsersService do
   describe '#get_accounts' do
     before do
       allow(grpc_stub).to receive(:get_accounts).and_return(
-        Tinkoff::Public::Invest::Api::Contract::V1::GetAccountsResponse.new(accounts: [])
+        TbankGrpc::CONTRACT_V1::GetAccountsResponse.new(accounts: [])
       )
     end
 
@@ -28,7 +28,7 @@ RSpec.describe TbankGrpc::Services::UsersService do
       service.get_accounts
 
       expect(grpc_stub).to have_received(:get_accounts).with(
-        be_a(Tinkoff::Public::Invest::Api::Contract::V1::GetAccountsRequest),
+        be_a(TbankGrpc::CONTRACT_V1::GetAccountsRequest),
         anything
       )
     end
@@ -52,7 +52,7 @@ RSpec.describe TbankGrpc::Services::UsersService do
   describe '#get_info' do
     before do
       allow(grpc_stub).to receive(:get_info).and_return(
-        Tinkoff::Public::Invest::Api::Contract::V1::GetInfoResponse.new(prem_status: false)
+        TbankGrpc::CONTRACT_V1::GetInfoResponse.new(prem_status: false)
       )
     end
 
@@ -60,7 +60,7 @@ RSpec.describe TbankGrpc::Services::UsersService do
       service.get_info
 
       expect(grpc_stub).to have_received(:get_info).with(
-        be_a(Tinkoff::Public::Invest::Api::Contract::V1::GetInfoRequest),
+        be_a(TbankGrpc::CONTRACT_V1::GetInfoRequest),
         anything
       )
     end
@@ -75,7 +75,7 @@ RSpec.describe TbankGrpc::Services::UsersService do
   describe '#get_margin_attributes' do
     before do
       allow(grpc_stub).to receive(:get_margin_attributes).and_return(
-        Tinkoff::Public::Invest::Api::Contract::V1::GetMarginAttributesResponse.new
+        TbankGrpc::CONTRACT_V1::GetMarginAttributesResponse.new
       )
     end
 

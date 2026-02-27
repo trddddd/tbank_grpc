@@ -9,7 +9,7 @@ RSpec.describe TbankGrpc::Services::MarketDataService do
 
   let(:channel) { instance_double(GRPC::Core::Channel) }
   let(:config) { { token: 't', app_name: 'trddddd.tbank_grpc', sandbox: true } }
-  let(:grpc_stub) { instance_double(Tinkoff::Public::Invest::Api::Contract::V1::MarketDataService::Stub) }
+  let(:grpc_stub) { instance_double(TbankGrpc::CONTRACT_V1::MarketDataService::Stub) }
   let(:service) { described_class.new(channel, config) }
 
   before do
@@ -27,7 +27,7 @@ RSpec.describe TbankGrpc::Services::MarketDataService do
 
   describe '#get_order_book' do
     before do
-      response = Tinkoff::Public::Invest::Api::Contract::V1::GetOrderBookResponse.new(figi: 'BBG004730N88', depth: 10)
+      response = TbankGrpc::CONTRACT_V1::GetOrderBookResponse.new(figi: 'BBG004730N88', depth: 10)
       allow(grpc_stub).to receive(:get_order_book).and_return(response)
     end
 
@@ -50,7 +50,7 @@ RSpec.describe TbankGrpc::Services::MarketDataService do
   describe '#get_candles' do
     before do
       allow(grpc_stub).to receive(:get_candles).and_return(
-        Tinkoff::Public::Invest::Api::Contract::V1::GetCandlesResponse.new(candles: [])
+        TbankGrpc::CONTRACT_V1::GetCandlesResponse.new(candles: [])
       )
     end
 
@@ -86,7 +86,7 @@ RSpec.describe TbankGrpc::Services::MarketDataService do
   describe '#get_last_prices' do
     before do
       allow(grpc_stub).to receive(:get_last_prices).and_return(
-        Tinkoff::Public::Invest::Api::Contract::V1::GetLastPricesResponse.new(last_prices: [])
+        TbankGrpc::CONTRACT_V1::GetLastPricesResponse.new(last_prices: [])
       )
     end
 

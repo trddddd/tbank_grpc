@@ -211,7 +211,7 @@ module TbankGrpc
           end
 
           def open_stream
-            stub = build_stub(@channel_manager.channel)
+            stub = initialize_stub(@channel_manager.channel)
             deadline = stream_deadline(Grpc::MethodName.full_name(stub, :market_data_stream))
             stub.market_data_stream(request_enumerator, metadata: {}, deadline: deadline)
           end
@@ -228,8 +228,8 @@ module TbankGrpc
             end
           end
 
-          def build_stub(channel)
-            type_module::MarketDataStreamService::Stub.new(
+          def initialize_stub(channel)
+            TbankGrpc::CONTRACT_V1::MarketDataStreamService::Stub.new(
               nil,
               :this_channel_is_insecure,
               channel_override: channel,
@@ -278,10 +278,6 @@ module TbankGrpc
 
           def stream_metrics_enabled?
             @config[:stream_metrics_enabled] == true
-          end
-
-          def type_module
-            Tinkoff::Public::Invest::Api::Contract::V1
           end
         end
         # rubocop:enable Metrics/ClassLength

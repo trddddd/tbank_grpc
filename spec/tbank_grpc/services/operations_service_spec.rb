@@ -9,7 +9,7 @@ RSpec.describe TbankGrpc::Services::OperationsService do
 
   let(:channel) { instance_double(GRPC::Core::Channel) }
   let(:config) { { token: 't', app_name: 'trddddd.tbank_grpc', sandbox: false } }
-  let(:grpc_stub) { instance_double(Tinkoff::Public::Invest::Api::Contract::V1::OperationsService::Stub) }
+  let(:grpc_stub) { instance_double(TbankGrpc::CONTRACT_V1::OperationsService::Stub) }
   let(:service) { described_class.new(channel, config, interceptors: []) }
 
   before do
@@ -27,7 +27,7 @@ RSpec.describe TbankGrpc::Services::OperationsService do
 
   describe '#get_portfolio' do
     let(:response) do
-      Tinkoff::Public::Invest::Api::Contract::V1::PortfolioResponse.new(
+      TbankGrpc::CONTRACT_V1::PortfolioResponse.new(
         account_id: 'acc-1'
       )
     end
@@ -62,7 +62,7 @@ RSpec.describe TbankGrpc::Services::OperationsService do
 
   describe '#get_positions' do
     let(:response) do
-      Tinkoff::Public::Invest::Api::Contract::V1::PositionsResponse.new(
+      TbankGrpc::CONTRACT_V1::PositionsResponse.new(
         account_id: 'acc-1',
         limits_loading_in_progress: false
       )
@@ -89,7 +89,7 @@ RSpec.describe TbankGrpc::Services::OperationsService do
 
   describe '#get_operations' do
     let(:proto_operation) do
-      Tinkoff::Public::Invest::Api::Contract::V1::Operation.new(
+      TbankGrpc::CONTRACT_V1::Operation.new(
         id: 'op-1',
         type: 'Покупка ЦБ',
         state: :OPERATION_STATE_EXECUTED,
@@ -97,10 +97,10 @@ RSpec.describe TbankGrpc::Services::OperationsService do
       )
     end
     let(:response) do
-      Tinkoff::Public::Invest::Api::Contract::V1::OperationsResponse.new(operations: [])
+      TbankGrpc::CONTRACT_V1::OperationsResponse.new(operations: [])
     end
     let(:response_with_ops) do
-      Tinkoff::Public::Invest::Api::Contract::V1::OperationsResponse.new(operations: [proto_operation])
+      TbankGrpc::CONTRACT_V1::OperationsResponse.new(operations: [proto_operation])
     end
 
     before { allow(grpc_stub).to receive(:get_operations).and_return(response) }
@@ -175,7 +175,7 @@ RSpec.describe TbankGrpc::Services::OperationsService do
 
   describe '#get_operations_by_cursor' do
     let(:response) do
-      Tinkoff::Public::Invest::Api::Contract::V1::GetOperationsByCursorResponse.new(
+      TbankGrpc::CONTRACT_V1::GetOperationsByCursorResponse.new(
         has_next: false,
         items: []
       )

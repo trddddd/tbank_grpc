@@ -8,8 +8,8 @@ module TbankGrpc
       module Subscriptions
         # Сборка proto-запросов для market data stream: подписки, ping, get_my_subscriptions.
         class RequestFactory
-          # @param type_module [Module] контракт API (по умолчанию Tinkoff::Public::Invest::Api::Contract::V1)
-          def initialize(type_module: Tinkoff::Public::Invest::Api::Contract::V1)
+          # @param type_module [Module] контракт API (по умолчанию TbankGrpc::CONTRACT_V1)
+          def initialize(type_module: TbankGrpc::CONTRACT_V1)
             @type_module = type_module
           end
 

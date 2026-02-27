@@ -6,7 +6,7 @@ RSpec.describe TbankGrpc::Models::Operations::Portfolio do
   before { TbankGrpc::ProtoLoader.require!('operations') }
 
   let(:position_proto) do
-    Tinkoff::Public::Invest::Api::Contract::V1::PortfolioPosition.new(
+    TbankGrpc::CONTRACT_V1::PortfolioPosition.new(
       figi: 'BBG004730N88',
       instrument_type: 'share',
       ticker: 'SBER',
@@ -15,7 +15,7 @@ RSpec.describe TbankGrpc::Models::Operations::Portfolio do
     )
   end
   let(:portfolio_proto) do
-    Tinkoff::Public::Invest::Api::Contract::V1::PortfolioResponse.new(
+    TbankGrpc::CONTRACT_V1::PortfolioResponse.new(
       account_id: 'acc-1',
       positions: [position_proto]
     )
@@ -40,14 +40,14 @@ RSpec.describe TbankGrpc::Models::Operations::Portfolio do
     end
 
     it 'returns empty positions for proto without positions' do
-      empty_proto = Tinkoff::Public::Invest::Api::Contract::V1::PortfolioResponse.new(account_id: 'acc-1')
+      empty_proto = TbankGrpc::CONTRACT_V1::PortfolioResponse.new(account_id: 'acc-1')
       model = described_class.from_grpc(empty_proto)
 
       expect(model.positions).to eq([])
     end
 
     it 'maps virtual_positions to array of hashes with expected keys' do
-      vp_proto = Tinkoff::Public::Invest::Api::Contract::V1::VirtualPortfolioPosition.new(
+      vp_proto = TbankGrpc::CONTRACT_V1::VirtualPortfolioPosition.new(
         position_uid: 'vp-1',
         instrument_uid: 'inst-1',
         figi: 'BBG004730N88',
@@ -55,7 +55,7 @@ RSpec.describe TbankGrpc::Models::Operations::Portfolio do
         ticker: 'SBER',
         class_code: 'TQBR'
       )
-      proto_with_vp = Tinkoff::Public::Invest::Api::Contract::V1::PortfolioResponse.new(
+      proto_with_vp = TbankGrpc::CONTRACT_V1::PortfolioResponse.new(
         account_id: 'acc-1',
         virtual_positions: [vp_proto]
       )
@@ -77,8 +77,8 @@ RSpec.describe TbankGrpc::Models::Operations::Portfolio do
 
   describe '#total' do
     it 'returns total_amount_portfolio as Float when set' do
-      money = Tinkoff::Public::Invest::Api::Contract::V1::MoneyValue.new(currency: 'RUB', units: 100_000, nano: 0)
-      proto = Tinkoff::Public::Invest::Api::Contract::V1::PortfolioResponse.new(
+      money = TbankGrpc::CONTRACT_V1::MoneyValue.new(currency: 'RUB', units: 100_000, nano: 0)
+      proto = TbankGrpc::CONTRACT_V1::PortfolioResponse.new(
         account_id: 'acc-1',
         total_amount_portfolio: money
       )
