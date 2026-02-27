@@ -16,7 +16,7 @@ RSpec.describe TbankGrpc::Services::MarketDataStreamService do
     }
   end
   let(:service) { described_class.new(channel_manager: channel_manager, config: config, interceptors: []) }
-  let(:types) { Tinkoff::Public::Invest::Api::Contract::V1 }
+  let(:types) { TbankGrpc::CONTRACT_V1 }
   let(:bidi_service) { service.instance_variable_get(:@bidi_service) }
 
   before do
@@ -211,7 +211,7 @@ RSpec.describe TbankGrpc::Services::MarketDataStreamService do
     let(:server_stream_service) { service.instance_variable_get(:@server_stream_service) }
 
     before do
-      allow(server_stream_service).to receive(:build_stub).and_return(stub)
+      allow(server_stream_service).to receive(:initialize_stub).and_return(stub)
     end
 
     it 'supports as: :model for candle payloads' do

@@ -17,6 +17,8 @@ loader.setup
 #
 # @see https://developer.tbank.ru/invest/api
 module TbankGrpc
+  CONTRACT_V1 = Tinkoff::Public::Invest::Api::Contract::V1
+
   class << self
     # @return [Zeitwerk::Loader] загрузчик автолоада гема
     def loader
@@ -32,6 +34,7 @@ module TbankGrpc
     # @return [void]
     def reload
       LOADER.reload
+      TbankGrpc.const_set(:CONTRACT_V1, Tinkoff::Public::Invest::Api::Contract::V1)
     end
   end
 end

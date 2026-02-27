@@ -6,7 +6,7 @@ RSpec.describe TbankGrpc::Streaming::MarketData::Responses::EventRouter do
   let(:event_loop) { instance_double(TbankGrpc::Streaming::Core::Dispatch::EventLoop) }
   let(:model_mapper) { instance_double(TbankGrpc::Streaming::MarketData::Responses::ModelMapper) }
   let(:router) { described_class.new(event_loop: event_loop, model_mapper: model_mapper) }
-  let(:types) { Tinkoff::Public::Invest::Api::Contract::V1 }
+  let(:types) { TbankGrpc::CONTRACT_V1 }
 
   before do
     TbankGrpc::ProtoLoader.require!('marketdata')

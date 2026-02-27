@@ -225,6 +225,41 @@ cursor_resp = client.operations.get_operations_by_cursor(
 )
 ```
 
+## Operations Streaming
+
+Server-side стримы операций: `PortfolioStream`, `PositionsStream`, `OperationsStream`.
+
+```ruby
+# 1) PortfolioStream
+client.operations_stream.portfolio_stream(account_ids: [account_id], as: :model) do |portfolio|
+  puts "#{portfolio.account_id}: total=#{portfolio.total}"
+end
+
+# 2) PositionsStream (с initial snapshot)
+client.operations_stream.positions_stream(
+  account_ids: [account_id],
+  with_initial_positions: true,
+  as: :model
+) do |payload|
+  case payload
+  when TbankGrpc::Models::Operations::Positions
+    puts "initial positions: #{payload.account_id}"
+  when TbankGrpc::Models::Operations::PositionData
+    puts "position update: #{payload.account_id}"
+  end
+end
+
+# 3) OperationsStream
+client.operations_stream.operations_stream(account_ids: [account_id], as: :model) do |operation|
+  puts "operation #{operation.id} #{operation.figi} #{operation.payment}"
+end
+```
+
+Нюансы:
+- `as: :proto` — сырые protobuf-ответы (`*StreamResponse`). Без блока возвращается `Enumerator`.
+- `as: :model` — требует block form; `ping` и `subscriptions` в model-режиме пропускаются.
+- Параметры аккаунтов: `account_ids:` (основной), либо `account_id:`/`accounts:` (алиасы), передавать можно только один вариант.
+
 ## InstrumentsService
 
 Сервис инструментов: поиск по FIGI/тикеру, списки акций/облигаций/фьючерсов, расписания, купоны, дивиденды, активы. Доступ: `client.instruments`.
@@ -305,12 +340,12 @@ reports = client.instruments.get_asset_reports(
 )
 ```
 
-Во всех методах опция `return_metadata: true` возвращает `TbankGrpc::Response` (data + metadata: tracking_id, ratelimit и т.д.) вместо модели/массива. Ошибки API — `TbankGrpc::Error` и подклассы.
+Во всех методах опция `return_metadata: true` возвращает `TbankGrpc::Response` (data + metadata: tracking_id, ratelimit и т.д.) вместо модели/массива. Ошибки API — `TbankGrpc::Error` и подклассы. Типы/контракт proto — `TbankGrpc::CONTRACT_V1`.
 
 > [!NOTE]
 > **Модели и вывод в консоли**  
 > В консоли (inspect / pretty_print) у моделей показываются только **часть полей** — выбранные для краткого отображения. Все поля: **`to_h`** или **`attributes`**. Для свечей и стакана: `to_h(precision: :big_decimal)`; у коллекции свечей также `serialize_candles(precision: :big_decimal)` — цены (open, high, low, close и т.д.) в виде **BigDecimal** вместо Float.
 
-Подробнее: [Setup](docs/setup.md), [Configuration](docs/configuration.md), [Market Data Streaming](docs/market_data_streaming.md). 
+Подробнее: [Setup](docs/setup.md), [Configuration](docs/configuration.md), [Market Data Streaming](docs/market_data_streaming.md), [Operations Streaming](docs/operations_streaming.md). 
 
 Документация API (YARD): `bundle exec rake doc`, просмотр — `bundle exec yard server` ([docs/yard.md](docs/yard.md)).

@@ -22,7 +22,7 @@ RSpec.describe TbankGrpc::Streaming::Core::Session::ListenLoop do
     )
   end
 
-  let(:types) { Tinkoff::Public::Invest::Api::Contract::V1 }
+  let(:types) { TbankGrpc::CONTRACT_V1 }
 
   before { TbankGrpc::ProtoLoader.require!('marketdata') }
 

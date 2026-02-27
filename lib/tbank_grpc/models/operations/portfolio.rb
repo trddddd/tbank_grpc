@@ -38,7 +38,7 @@ module TbankGrpc
         private
 
         def virtual_position_to_h(virtual_position)
-          quantity = Core::ValueObjects::Quotation.from_grpc(virtual_position.quantity)&.to_f
+          quantity = Core::ValueObjects::Quotation.from_grpc(virtual_position.quantity).to_f
           {
             position_uid: virtual_position.position_uid,
             instrument_uid: virtual_position.instrument_uid,

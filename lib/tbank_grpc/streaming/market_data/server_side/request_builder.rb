@@ -8,15 +8,12 @@ module TbankGrpc
         # last_prices, ping_delay_ms).
         class RequestBuilder
           # @param params_normalizer [Subscriptions::ParamsNormalizer]
-          # @param model_mapper [Responses::ModelMapper]
           # @param type_module [Module]
           def initialize(
             params_normalizer: Subscriptions::ParamsNormalizer,
-            model_mapper: Responses::ModelMapper.new,
-            type_module: Tinkoff::Public::Invest::Api::Contract::V1
+            type_module: TbankGrpc::CONTRACT_V1
           )
             @params_normalizer = params_normalizer
-            @model_mapper = model_mapper
             @type_module = type_module
           end
 
@@ -29,15 +26,6 @@ module TbankGrpc
             apply_subscription_requests(request, normalized)
             request.ping_settings = build_ping_settings(normalized[:ping_delay_ms]) if normalized[:ping_delay_ms]
             request
-          end
-
-          # @param response [MarketDataResponse]
-          # @param format [Symbol] :proto или :model
-          # @return [Object] proto или первая модель из ответа
-          def convert_response(response, format:)
-            return response if format == :proto
-
-            @model_mapper.first_model_from_response(response)
           end
 
           private

@@ -107,6 +107,18 @@ RSpec.describe TbankGrpc::Client do
     expect(client.operations).to equal(client.operations)
   end
 
+  it 'exposes #operations_stream as OperationsStreamService' do
+    expect(client.operations_stream).to be_a(TbankGrpc::Services::OperationsStreamService)
+  end
+
+  it 'returns same instance for #operations_stream' do
+    expect(client.operations_stream).to equal(client.operations_stream)
+  end
+
+  it 'uses dedicated channel manager for #operations_stream' do
+    expect(client.operations_stream.channel_manager).not_to equal(client.channel_manager)
+  end
+
   it 'exposes #market_data_stream as MarketDataStreamService' do
     expect(client.market_data_stream).to be_a(TbankGrpc::Services::MarketDataStreamService)
   end

@@ -16,11 +16,10 @@ module TbankGrpc
           def initialize(channel_manager:, config:, interceptors:)
             ProtoLoader.require!('marketdata')
             super
-            model_mapper = ::TbankGrpc::Streaming::MarketData::Responses::ModelMapper.new
+            @model_mapper = ::TbankGrpc::Streaming::MarketData::Responses::ModelMapper.new
             @request_builder = ::TbankGrpc::Streaming::MarketData::ServerSide::RequestBuilder.new(
               params_normalizer: ::TbankGrpc::Streaming::MarketData::Subscriptions::ParamsNormalizer,
-              model_mapper: model_mapper,
-              type_module: type_module
+              type_module: TbankGrpc::CONTRACT_V1
             )
           end
 
@@ -34,31 +33,25 @@ module TbankGrpc
           def market_data_server_side_stream(as: :proto, **subscription_params, &)
             request = @request_builder.build(**subscription_params)
             run_server_side_stream(
-              stub: build_stub(@channel_manager.channel),
+              stub: initialize_stub(@channel_manager.channel),
               rpc_method: :market_data_server_side_stream,
               request: request,
               as: as,
               model_requires_block_message: MODEL_REQUIRES_BLOCK_MESSAGE,
-              converter: lambda { |response, format:|
-                @request_builder.convert_response(response, format: format)
-              },
+              converter: ->(response, format:) { @model_mapper.convert_response(response, format: format) },
               &
             )
           end
 
           private
 
-          def build_stub(channel)
-            type_module::MarketDataStreamService::Stub.new(
+          def initialize_stub(channel)
+            TbankGrpc::CONTRACT_V1::MarketDataStreamService::Stub.new(
               nil,
               :this_channel_is_insecure,
               channel_override: channel,
               interceptors: @interceptors
             )
-          end
-
-          def type_module
-            Tinkoff::Public::Invest::Api::Contract::V1
           end
         end
       end

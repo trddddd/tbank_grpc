@@ -6,10 +6,10 @@ RSpec.describe TbankGrpc::Models::Operations::Positions do
   before { TbankGrpc::ProtoLoader.require!('operations') }
 
   let(:money_proto) do
-    Tinkoff::Public::Invest::Api::Contract::V1::MoneyValue.new(currency: 'RUB', units: 50_000, nano: 0)
+    TbankGrpc::CONTRACT_V1::MoneyValue.new(currency: 'RUB', units: 50_000, nano: 0)
   end
   let(:proto) do
-    Tinkoff::Public::Invest::Api::Contract::V1::PositionsResponse.new(
+    TbankGrpc::CONTRACT_V1::PositionsResponse.new(
       account_id: 'acc-1',
       limits_loading_in_progress: false,
       money: [money_proto]

@@ -6,7 +6,7 @@ RSpec.describe TbankGrpc::Models::Operations::Operation do
   before { TbankGrpc::ProtoLoader.require!('operations') }
 
   let(:proto) do
-    Tinkoff::Public::Invest::Api::Contract::V1::Operation.new(
+    TbankGrpc::CONTRACT_V1::Operation.new(
       id: 'op-1',
       parent_operation_id: '',
       currency: 'rub',

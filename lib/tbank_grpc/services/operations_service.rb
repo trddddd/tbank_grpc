@@ -14,12 +14,12 @@ module TbankGrpc
       # @param return_metadata [Boolean]
       # @return [Models::Operations::Portfolio, Response]
       def get_portfolio(account_id:, currency: nil, return_metadata: false)
-        request = Tinkoff::Public::Invest::Api::Contract::V1::PortfolioRequest.new(
+        request = TbankGrpc::CONTRACT_V1::PortfolioRequest.new(
           account_id: normalize_account_id(account_id)
         )
         if currency
           request.currency = resolve_enum(
-            Tinkoff::Public::Invest::Api::Contract::V1::PortfolioRequest::CurrencyRequest,
+            TbankGrpc::CONTRACT_V1::PortfolioRequest::CurrencyRequest,
             currency,
             prefix: nil
           )
@@ -38,7 +38,7 @@ module TbankGrpc
       # @param return_metadata [Boolean]
       # @return [Models::Operations::Positions, Response]
       def get_positions(account_id:, return_metadata: false)
-        request = Tinkoff::Public::Invest::Api::Contract::V1::PositionsRequest.new(
+        request = TbankGrpc::CONTRACT_V1::PositionsRequest.new(
           account_id: normalize_account_id(account_id)
         )
         execute_rpc(
@@ -60,14 +60,14 @@ module TbankGrpc
       # @return [Array<Models::Operations::Operation>, Response]
       # rubocop:disable Metrics/ParameterLists
       def get_operations(account_id:, from:, to:, state: nil, figi: nil, return_metadata: false)
-        request = Tinkoff::Public::Invest::Api::Contract::V1::OperationsRequest.new(
+        request = TbankGrpc::CONTRACT_V1::OperationsRequest.new(
           account_id: normalize_account_id(account_id),
           from: timestamp_to_proto(from),
           to: timestamp_to_proto(to)
         )
         if state
           request.state = resolve_enum(
-            Tinkoff::Public::Invest::Api::Contract::V1::OperationState,
+            TbankGrpc::CONTRACT_V1::OperationState,
             state,
             prefix: 'OPERATION_STATE'
           )
@@ -113,7 +113,7 @@ module TbankGrpc
         without_overnights: nil,
         return_metadata: false
       )
-        request = Tinkoff::Public::Invest::Api::Contract::V1::GetOperationsByCursorRequest.new(
+        request = TbankGrpc::CONTRACT_V1::GetOperationsByCursorRequest.new(
           account_id: normalize_account_id(account_id)
         )
         request.instrument_id = instrument_id if instrument_id
@@ -124,7 +124,7 @@ module TbankGrpc
         if operation_types
           request.operation_types = Array(operation_types).map do |t|
             resolve_enum(
-              Tinkoff::Public::Invest::Api::Contract::V1::OperationType,
+              TbankGrpc::CONTRACT_V1::OperationType,
               t,
               prefix: 'OPERATION_TYPE'
             )
@@ -132,7 +132,7 @@ module TbankGrpc
         end
         if state
           request.state = resolve_enum(
-            Tinkoff::Public::Invest::Api::Contract::V1::OperationState,
+            TbankGrpc::CONTRACT_V1::OperationState,
             state,
             prefix: 'OPERATION_STATE'
           )
@@ -152,7 +152,7 @@ module TbankGrpc
 
       def initialize_stub
         ProtoLoader.require!('operations')
-        Tinkoff::Public::Invest::Api::Contract::V1::OperationsService::Stub.new(
+        TbankGrpc::CONTRACT_V1::OperationsService::Stub.new(
           nil,
           :this_channel_is_insecure,
           channel_override: @channel,

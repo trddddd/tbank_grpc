@@ -27,6 +27,15 @@ module TbankGrpc
             new(units: u, nano: n, currency: proto.currency.to_s)
           end
 
+          # Как {.from_grpc}, но при отсутствии proto возвращает нулевую сумму в заданной валюте.
+          #
+          # @param proto [Object, nil] MoneyValue из gRPC
+          # @param default_currency [String]
+          # @return [Money]
+          def self.from_grpc_or_zero(proto, default_currency = 'RUB')
+            from_grpc(proto) || from_value(0, default_currency.to_s)
+          end
+
           def self.from_value(value, currency)
             from_decimal(BigDecimal(value.to_s), currency.to_s)
           end
