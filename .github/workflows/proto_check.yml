@@ -1,13 +1,15 @@
 name: Proto check
 
 on:
+  schedule:
+    - cron: '0 0 * * 1'
   pull_request:
     paths:
       - 'proto/**'
       - 'lib/tbank_grpc/proto/**'
       - 'Rakefile'
   push:
-    branches: [main, master]
+    branches: [main]
     paths:
       - 'proto/**'
       - 'lib/tbank_grpc/proto/**'
