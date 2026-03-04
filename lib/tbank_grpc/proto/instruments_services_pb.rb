@@ -51,6 +51,10 @@ module Tinkoff
                 rpc :ShareBy, ::Tinkoff::Public::Invest::Api::Contract::V1::InstrumentRequest, ::Tinkoff::Public::Invest::Api::Contract::V1::ShareResponse
                 # Shares — список акций
                 rpc :Shares, ::Tinkoff::Public::Invest::Api::Contract::V1::InstrumentsRequest, ::Tinkoff::Public::Invest::Api::Contract::V1::SharesResponse
+                # DfaBy — получить цифровой актив по ее идентификатору
+                rpc :DfaBy, ::Tinkoff::Public::Invest::Api::Contract::V1::InstrumentRequest, ::Tinkoff::Public::Invest::Api::Contract::V1::DfaResponse
+                # Dfas — список цифровых активов
+                rpc :Dfas, ::Tinkoff::Public::Invest::Api::Contract::V1::DfasRequest, ::Tinkoff::Public::Invest::Api::Contract::V1::DfasResponse
                 # Indicatives — индикативные инструменты — индексы, товары и другие
                 rpc :Indicatives, ::Tinkoff::Public::Invest::Api::Contract::V1::IndicativesRequest, ::Tinkoff::Public::Invest::Api::Contract::V1::IndicativesResponse
                 # GetAccruedInterests — накопленный купонный доход по облигации

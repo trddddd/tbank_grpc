@@ -119,6 +119,18 @@ RSpec.describe TbankGrpc::Client do
     expect(client.operations_stream.channel_manager).not_to equal(client.channel_manager)
   end
 
+  it 'exposes #orders as OrdersService' do
+    channel = GRPC::Core::Channel.new('localhost:50051', {}, :this_channel_is_insecure)
+    allow(client.channel_manager).to receive(:channel).and_return(channel)
+    expect(client.orders).to be_a(TbankGrpc::Services::OrdersService)
+  end
+
+  it 'returns same instance for #orders' do
+    channel = GRPC::Core::Channel.new('localhost:50051', {}, :this_channel_is_insecure)
+    allow(client.channel_manager).to receive(:channel).and_return(channel)
+    expect(client.orders).to equal(client.orders)
+  end
+
   it 'exposes #market_data_stream as MarketDataStreamService' do
     expect(client.market_data_stream).to be_a(TbankGrpc::Services::MarketDataStreamService)
   end
@@ -129,6 +141,18 @@ RSpec.describe TbankGrpc::Client do
 
   it 'uses dedicated channel manager for #market_data_stream' do
     expect(client.market_data_stream.channel_manager).not_to equal(client.channel_manager)
+  end
+
+  it 'exposes #orders_stream as OrdersStreamService' do
+    expect(client.orders_stream).to be_a(TbankGrpc::Services::OrdersStreamService)
+  end
+
+  it 'returns same instance for #orders_stream' do
+    expect(client.orders_stream).to equal(client.orders_stream)
+  end
+
+  it 'uses dedicated channel manager for #orders_stream' do
+    expect(client.orders_stream.channel_manager).not_to equal(client.channel_manager)
   end
 
   describe 'stream helper delegation' do
@@ -216,6 +240,32 @@ RSpec.describe TbankGrpc::Client do
 
     it 'delegates stream_event_stats to event_stats with event type' do
       expect(stream_service).to have_received(:event_stats).with(:candle)
+    end
+  end
+
+  describe 'orders stream helper delegation' do
+    let(:orders_stream_service) { instance_double(TbankGrpc::Services::OrdersStreamService) }
+
+    before do
+      allow(client).to receive(:orders_stream).and_return(orders_stream_service)
+      allow(orders_stream_service).to receive(:order_state_stream).and_return(:state_stream)
+      allow(orders_stream_service).to receive(:trades_stream).and_return(:trades_stream)
+    end
+
+    it 'delegates stream_order_states to orders_stream.order_state_stream' do
+      result = client.stream_order_states(account_ids: ['acc-1'], as: :proto)
+
+      expect(result).to eq(:state_stream)
+      expect(orders_stream_service).to have_received(:order_state_stream)
+        .with(account_ids: ['acc-1'], as: :proto)
+    end
+
+    it 'delegates stream_order_trades to orders_stream.trades_stream' do
+      result = client.stream_order_trades(account_ids: ['acc-1'], as: :model) { |_payload| nil }
+
+      expect(result).to eq(:trades_stream)
+      expect(orders_stream_service).to have_received(:trades_stream)
+        .with(account_ids: ['acc-1'], as: :model)
     end
   end
 

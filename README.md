@@ -142,6 +142,12 @@ client.listen_to_stream_async
 client.stop_stream
 ```
 
+### Общие нюансы stream-сервисов
+
+- `as: :proto` — сырые protobuf-ответы (`*StreamResponse`); без блока возвращается `Enumerator`. В цикле приходят все сообщения: целевой payload, `ping`, `subscription` — разбирать по `resp.payload`.
+- `as: :model` — требует блок; в model-режиме `ping` и `subscription`/`subscriptions` пропускаются (конвертер возвращает только целевой payload), в блок попадают только доменные события.
+- Параметры аккаунтов: используйте `account_ids:` (основной вариант) **или** `account_id:`/`accounts:` (алиасы); можно передавать только один из вариантов за раз.
+
 **Пример в консоли (IRB)** — подписки, события, запрос своих подписок (GetMySubscriptions), смена подписок без переподключения:
 
 ```ruby
@@ -189,6 +195,144 @@ client.close
 - Клиентский guard лимитов: `300` подписок на соединение (в библиотеке `info` не учитывается) и `100` мутаций/мин.
 - Для stream RPC по умолчанию deadline не выставляется; при необходимости задаётся через `config.deadline_overrides`.
 - `GRPC::PermissionDenied` / `GRPC::Unauthenticated` останавливают stream: после обновления токена запустите listen заново.
+
+## OrdersService
+
+Торговые поручения: выставление/изменение/отмена заявок, статус, предварительный расчёт стоимости и лимитов лотов. Доступ: `client.orders`.
+
+```ruby
+account_id = client.users.get_accounts(status: :open).first.id
+
+# Выставить лимитную заявку
+post = client.orders.post_order(
+  instrument_id: "BBG004730N88",
+  quantity: 1,
+  price: 300.10,
+  direction: :buy,
+  account_id: account_id,
+  order_type: :limit,
+  order_request_id: "11111111-1111-1111-1111-111111111111"
+)
+
+# Асинхронная выставка (PostOrderAsync)
+async_post = client.orders.post_order_async(
+  instrument_id: "BBG004730N88",
+  quantity: 1,
+  price: 300.10,
+  direction: :buy,
+  account_id: account_id,
+  order_type: :limit,
+  order_request_id: "22222222-2222-2222-2222-222222222222"
+)
+
+# Статус по idempotency key (order_request_id)
+state = client.orders.get_order_state_by_request_id(
+  account_id: account_id,
+  order_request_id: async_post.order_request_id
+)
+
+# Изменить активную заявку
+replaced = client.orders.replace_order(
+  account_id: account_id,
+  order_id: post.order_id, # биржевой id заявки
+  idempotency_key: "33333333-3333-3333-3333-333333333333",
+  quantity: 2,
+  price: 299.90
+)
+
+# Отмена
+client.orders.cancel_order(account_id: account_id, order_id: replaced.order_id)
+
+# Лимиты лотов и предварительный расчёт стоимости лимитки
+lots = client.orders.get_max_lots(account_id: account_id, instrument_id: "BBG004730N88")
+puts lots.buy_available_lots
+puts lots.sell_available_lots
+
+price_check = client.orders.get_order_price(
+  account_id: account_id,
+  instrument_id: "BBG004730N88",
+  price: 300.10,
+  direction: :buy,
+  quantity: 1
+)
+
+# Список активных заявок (фильтр from/to применим только к заявкам, созданным сегодня)
+orders = client.orders.get_orders(
+  account_id: account_id,
+  execution_status: [:new, :partiallyfill]
+)
+```
+
+Важные нюансы:
+- В `PostOrder`/`PostOrderAsync` поле `order_id` — это idempotency key (UID), не биржевой `order_id`.
+- Для работы по idempotency key используйте `order_request_id` + `ORDER_ID_TYPE_REQUEST` (или методы `*_by_request_id`).
+- В `ReplaceOrder` нужен **новый** `idempotency_key`.
+- `GetOrderPrice` используется для проверки лимитной заявки и требует `price`.
+- Unary-методы `OrdersService` возвращают модели `TbankGrpc::Models::Orders::*`.
+- При `return_metadata: true` возвращается `TbankGrpc::Response`, а в `response.data` лежит raw proto.
+- `GetMaxLots` возвращает модель `TbankGrpc::Models::Orders::MaxLots` (не raw proto).
+- В `OrderExecutionReportStatus` для частичного исполнения в proto имя `EXECUTION_REPORT_STATUS_PARTIALLYFILL`; в gem принимаются оба варианта: `:partiallyfill` и `:partially_fill`.
+
+### Helpers::OrdersHelper — удобные шорткаты для ордеров
+
+Для типовых сценариев есть фасадный хелпер: `client.helpers.orders`.
+
+```ruby
+orders = client.helpers.orders
+account_id = client.users.get_accounts(status: :open).first.id
+
+# Рыночная покупка / продажа
+orders.buy_market(
+  instrument_id: "BBG004730N88",
+  quantity: 1,
+  account_id: account_id
+)
+
+orders.sell_market(
+  instrument_id: "BBG004730N88",
+  quantity: 1,
+  account_id: account_id
+)
+
+# Разбиение объёма на части (order slicing по рынку)
+# Возвращает массив Models::Orders::OrderResponse (по одному на каждую часть)
+results = orders.buy_sliced(
+  instrument_id: "BBG004730N88",
+  quantity: 10,          # суммарный объём в лотах
+  account_id: account_id,
+  parts: 3,              # на сколько заявок разбить
+  delay_ms: 500          # задержка между частями (опционально)
+)
+
+# Анализ результата по частям (order_id, execution_report_status, lots_executed и т.д.)
+results.each_with_index do |resp, i|
+  puts "part #{i + 1}: order_id=#{resp.order_id} status=#{resp.execution_report_status} lots=#{resp.lots_executed}/#{resp.lots_requested}"
+end
+# При ошибке одной из частей метод выбрасывает исключение до возврата массива
+```
+
+## Orders Streaming
+
+Server-side stream для ордеров: `OrderStateStream` и `TradesStream`. Доступ: `client.orders_stream`.
+Также есть фасадные шорткаты в клиенте: `client.stream_order_states(...)` и `client.stream_order_trades(...)`.
+
+```ruby
+# 1) Сырые proto-сообщения (Enumerator)
+stream = client.orders_stream.order_state_stream(account_ids: [account_id], ping_delay_millis: 10_000)
+first_message = stream.first
+
+# 2) as: :model — только целевые payload (ping/subscription пропускаются)
+client.orders_stream.order_state_stream(as: :model, account_ids: [account_id]) do |order_state|
+  puts "order update id=#{order_state.order_id} status=#{order_state.execution_report_status}"
+end
+
+client.orders_stream.trades_stream(as: :model, account_ids: [account_id]) do |order_trades|
+  puts "trades for order #{order_trades.order_id}: #{order_trades.trades.size}"
+end
+```
+Нюансы:
+- Общие правила работы со stream-сервисами см. в разделе «Общие нюансы stream-сервисов».
+- Для `order_state_stream` можно указать `ping_delay_millis:` (proto field) или alias `ping_delay_ms:`.
 
 ## OperationsService
 
@@ -254,11 +398,8 @@ client.operations_stream.operations_stream(account_ids: [account_id], as: :model
   puts "operation #{operation.id} #{operation.figi} #{operation.payment}"
 end
 ```
-
 Нюансы:
-- `as: :proto` — сырые protobuf-ответы (`*StreamResponse`). Без блока возвращается `Enumerator`.
-- `as: :model` — требует block form; `ping` и `subscriptions` в model-режиме пропускаются.
-- Параметры аккаунтов: `account_ids:` (основной), либо `account_id:`/`accounts:` (алиасы), передавать можно только один вариант.
+- Общие правила работы со stream-сервисами см. в разделе «Общие нюансы stream-сервисов».
 
 ## InstrumentsService
 

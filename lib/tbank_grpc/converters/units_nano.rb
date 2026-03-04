@@ -24,7 +24,7 @@ module TbankGrpc
       # @param decimal [BigDecimal, Numeric, String]
       # @return [Hash{Symbol => Integer}] { units:, nano: }
       def self.from_decimal(decimal)
-        d = BigDecimal(decimal.to_s)
+        d = BigDecimal(decimal.to_s).round(9, BigDecimal::ROUND_HALF_EVEN)
         units = d.to_i
         nano = ((d - units) * Constants::NANO_DIVISOR_BD).to_i
         { units: units, nano: nano }

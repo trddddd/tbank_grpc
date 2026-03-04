@@ -10,6 +10,7 @@ module TbankGrpc
     #
     # @note tracking_id приходит от T-Bank в ответе (x-tracking-id). В клиентском интерсепторе до ответа его нет;
     #   в логе успеха tracking_id будет nil. При ошибке берём из e.metadata.
+    # @note Не логировать kwargs[:metadata] и kwargs[:request] — в metadata передаётся authorization (токен).
     class Logging < GRPC::ClientInterceptor
       # @!method request_response(**kwargs, &block)
       # @!method client_streamer(**kwargs, &block)

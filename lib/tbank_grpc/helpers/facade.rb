@@ -18,6 +18,11 @@ module TbankGrpc
       def market_data
         @market_data ||= MarketDataHelper.new(@client)
       end
+
+      # @return [OrdersHelper]
+      def orders
+        @orders ||= OrdersHelper.new(@client)
+      end
     end
   end
 end

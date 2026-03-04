@@ -121,8 +121,7 @@ module TbankGrpc
             end
           end
         rescue GRPC::BadStatus => e
-          tracking_id = extract_tracking_id(e)
-          context = { grpc_code: e.code, tracking_id: tracking_id, method: method_name }
+          context = { grpc_code: e.code, method: method_name }
           error = ErrorHandler.wrap_grpc_error(e, context)
           logger.error('Request failed', error: error)
           raise error
@@ -137,11 +136,6 @@ module TbankGrpc
           options[:return_op] = true if return_metadata
 
           stub.public_send(method_name, request, **options)
-        end
-
-        def extract_tracking_id(grpc_error)
-          raw = Grpc::TrackingId.extract(grpc_error.metadata)
-          raw.nil? ? 'unknown' : raw.to_s
         end
 
         def extract_response_metadata(operation)

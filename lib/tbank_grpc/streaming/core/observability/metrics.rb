@@ -6,9 +6,20 @@ module TbankGrpc
       module Observability
         # Метрики обработки stream-событий (event loop).
         # При enabled: false все track_* — no-op, to_h/event_stats возвращают ту же структуру с нулями/пустыми хешами.
+        #
+        # Ограничения роста (длительный uptime): история латентностей и ошибок ограничена по размеру и (опционально) по TTL.
+        # rubocop:disable Metrics/ClassLength
         class Metrics
-          def initialize(enabled: true)
+          # @param enabled [Boolean]
+          # @param max_latency_samples [Integer] максимум значений латентности на тип события (скользящее окно)
+          # @param max_errors_per_type [Integer] максимум записей об ошибках на тип события
+          # @param error_ttl_seconds [Integer, Float, nil] если задан — записи об ошибках старше этого возраста (сек)
+          #   удаляются при добавлении новой
+          def initialize(enabled: true, max_latency_samples: 1000, max_errors_per_type: 100, error_ttl_seconds: nil)
             @enabled = enabled
+            @max_latency_samples = max_latency_samples
+            @max_errors_per_type = max_errors_per_type
+            @error_ttl_seconds = error_ttl_seconds
             @mutex = Mutex.new
             @events_emitted = Hash.new(0)
             @events_processed = Hash.new(0)
@@ -97,6 +108,23 @@ module TbankGrpc
             end
           end
 
+          # Сброс агрегированных счётчиков и истории (латентности, ошибки).
+          # @param reset_started_at [Boolean] сбросить @started_at (uptime и throughput_per_sec начнут считаться заново)
+          # @return [void]
+          def reset_aggregates!(reset_started_at: true)
+            return unless @enabled
+
+            @mutex.synchronize do
+              @events_emitted.clear
+              @events_processed.clear
+              @callbacks_success.clear
+              @callbacks_error.clear
+              @latencies.each_value(&:clear)
+              @errors.each_value(&:clear)
+              @started_at = Time.now if reset_started_at
+            end
+          end
+
           # @param event_type [Symbol]
           # @return [Hash] emitted, processed, success, errors, avg_latency_ms, p95_latency_ms,
           #   p99_latency_ms, throughput_per_sec
@@ -147,13 +175,22 @@ module TbankGrpc
           def store_latency(event_type, latency_ms)
             values = @latencies[event_type]
             values << latency_ms
-            values.shift(5_000) if values.length > 10_000
+            excess = values.length - @max_latency_samples
+            values.shift(excess) if excess.positive?
           end
 
           def store_error(event_type, error)
             values = @errors[event_type]
-            values << { message: error.message, timestamp: Time.now }
-            values.shift(50) if values.length > 100
+            now = Time.now
+            prune_errors_by_ttl!(values) if @error_ttl_seconds
+            values << { message: error.message, timestamp: now }
+            excess = values.length - @max_errors_per_type
+            values.shift(excess) if excess.positive?
+          end
+
+          def prune_errors_by_ttl!(values)
+            cutoff = Time.now - @error_ttl_seconds
+            values.reject! { |e| e[:timestamp] < cutoff }
           end
 
           def latency_stats
@@ -191,6 +228,7 @@ module TbankGrpc
             (@events_processed[event_type] / uptime).round(2)
           end
         end
+        # rubocop:enable Metrics/ClassLength
       end
     end
   end

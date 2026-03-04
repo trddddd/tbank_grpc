@@ -15,6 +15,8 @@ module TbankGrpc
 
       def format
         case @value
+        when Array
+          @value.map { |el| self.class.format(el) }
         when Models::Core::ValueObjects::Money
           @value.to_s
         when Models::Core::ValueObjects::Quotation

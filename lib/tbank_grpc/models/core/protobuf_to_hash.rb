@@ -66,7 +66,7 @@ module TbankGrpc
         end
 
         def self.convert_special_type(value)
-          return nil unless value.respond_to?(:units)
+          return unless value.respond_to?(:units)
 
           class_suffix = value.class.name.split('::').last
           converter = SPECIAL_CONVERTERS[class_suffix]

@@ -4,7 +4,8 @@ module TbankGrpc
   # Клиент T-Bank Invest API. Точка входа для сервисов и хелперов.
   #
   # Unary-сервисы (users, instruments, market_data) используют общий {#channel_manager}.
-  # Стримы (market_data_stream, operations_stream) — отдельный менеджер через {#stream_channel_manager};
+  # Стримы (market_data_stream, operations_stream, orders_stream) — отдельный менеджер через
+  # {#stream_channel_manager};
   # один channel технически мог бы обслуживать и unary, и стримы; разделение нужно для
   # изоляции lifecycle, reconnect и пулов.
   #
@@ -100,6 +101,19 @@ module TbankGrpc
       end
     end
 
+    # Доступ к сервису торговых поручений (заявки, отмена, статусы, расчёты).
+    #
+    # @return [Services::OrdersService]
+    def orders
+      @services_mutex.synchronize do
+        @orders ||= Services::OrdersService.new(
+          @channel_manager.channel,
+          @config,
+          interceptors: @interceptors
+        )
+      end
+    end
+
     # Доступ к bidirectional stream сервиса рыночных данных.
     # Использует отдельный ChannelManager (stream_channel_manager(:market_data)), не общий пул unary.
     #
@@ -123,6 +137,20 @@ module TbankGrpc
       @services_mutex.synchronize do
         @operations_stream ||= Services::OperationsStreamService.new(
           channel_manager: stream_channel_manager(:operations),
+          config: @config,
+          interceptors: @interceptors
+        )
+      end
+    end
+
+    # Доступ к server-side stream сервиса ордеров.
+    # Использует отдельный ChannelManager (stream_channel_manager(:orders)).
+    #
+    # @return [Services::OrdersStreamService]
+    def orders_stream
+      @services_mutex.synchronize do
+        @orders_stream ||= Services::OrdersStreamService.new(
+          channel_manager: stream_channel_manager(:orders),
           config: @config,
           interceptors: @interceptors
         )
@@ -187,6 +215,24 @@ module TbankGrpc
     # @return [void]
     def stream_last_price(*instrument_ids)
       market_data_stream.subscribe_last_price(*instrument_ids)
+    end
+
+    # Server-side stream статусов заявок (OrdersStreamService/OrderStateStream).
+    #
+    # @param kwargs [Hash] параметры из OrdersStreamService#order_state_stream
+    # @yield [payload] при as: :model обязателен
+    # @return [Enumerator, nil]
+    def stream_order_states(**, &)
+      orders_stream.order_state_stream(**, &)
+    end
+
+    # Server-side stream сделок по заявкам (OrdersStreamService/TradesStream).
+    #
+    # @param kwargs [Hash] параметры из OrdersStreamService#trades_stream
+    # @yield [payload] при as: :model обязателен
+    # @return [Enumerator, nil]
+    def stream_order_trades(**, &)
+      orders_stream.trades_stream(**, &)
     end
 
     # Асинхронный запуск стрима в фоновом потоке.
@@ -283,6 +329,8 @@ module TbankGrpc
         @market_data_stream = nil
         @operations = nil
         @operations_stream = nil
+        @orders = nil
+        @orders_stream = nil
         @helpers = nil
       end
     end

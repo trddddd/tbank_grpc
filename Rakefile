@@ -4,6 +4,7 @@ require 'bundler/gem_tasks'
 require 'rspec/core/rake_task'
 require 'fileutils'
 require 'net/http'
+require 'open3'
 require 'uri'
 
 task default: [:spec]
@@ -48,6 +49,7 @@ task :download_proto do
     path = File.join(PROTO_DIR, filename)
 
     print "  #{filename}... "
+    sleep 0.1
 
     begin
       download_file(url, path)
@@ -101,13 +103,20 @@ task compile_proto: :check_protoc do
   proto_files.each do |proto_file|
     puts "Compiling #{File.basename(proto_file)}..."
 
-    system(
+    out, err, status = Open3.capture3(
       'bundle', 'exec', 'grpc_tools_ruby_protoc',
       '-I', PROTO_DIR,
       '--ruby_out', output_dir,
       '--grpc_out', output_dir,
       proto_file
-    ) || raise("Failed to compile #{proto_file}")
+    )
+
+    next if status.success?
+
+    msg = "Failed to compile #{proto_file} (exit #{status.exitstatus})"
+    msg += "\n#{err.strip}" if err && !err.strip.empty?
+    msg += "\n#{out.strip}" if out && !out.strip.empty? && (err.nil? || err.strip.empty?)
+    raise msg
   end
 
   puts 'Proto compiled successfully.'
