@@ -295,6 +295,7 @@ orders.sell_market(
 )
 
 # Разбиение объёма на части (order slicing по рынку)
+# Возвращает массив Models::Orders::OrderResponse (по одному на каждую часть)
 results = orders.buy_sliced(
   instrument_id: "BBG004730N88",
   quantity: 10,          # суммарный объём в лотах
@@ -303,9 +304,11 @@ results = orders.buy_sliced(
   delay_ms: 500          # задержка между частями (опционально)
 )
 
-# Анализ результата по частям
-failed = results.reject { |r| r[:success] }
-puts "ok=#{results.size - failed.size} failed=#{failed.size}"
+# Анализ результата по частям (order_id, execution_report_status, lots_executed и т.д.)
+results.each_with_index do |resp, i|
+  puts "part #{i + 1}: order_id=#{resp.order_id} status=#{resp.execution_report_status} lots=#{resp.lots_executed}/#{resp.lots_requested}"
+end
+# При ошибке одной из частей метод выбрасывает исключение до возврата массива
 ```
 
 ## Orders Streaming
