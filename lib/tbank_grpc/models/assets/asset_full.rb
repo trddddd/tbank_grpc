@@ -44,7 +44,7 @@ module TbankGrpc
         #
         # @return [Brand, nil]
         def brand
-          return nil unless @pb.respond_to?(:brand) && @pb.brand
+          return unless @pb.respond_to?(:brand) && @pb.brand
 
           @brand ||= Brand.from_grpc(@pb.brand)
         end

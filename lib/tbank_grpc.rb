@@ -34,7 +34,6 @@ module TbankGrpc
     # @return [void]
     def reload
       LOADER.reload
-      TbankGrpc.const_set(:CONTRACT_V1, Tinkoff::Public::Invest::Api::Contract::V1)
     end
   end
 end

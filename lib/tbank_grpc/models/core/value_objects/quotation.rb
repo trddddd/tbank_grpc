@@ -61,7 +61,7 @@ module TbankGrpc
           end
 
           def <=>(other)
-            return nil unless other.is_a?(self.class)
+            return unless other.is_a?(self.class)
 
             cmp = units <=> other.units
             return cmp unless cmp&.zero?

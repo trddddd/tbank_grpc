@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.4] - 2026-03-03
+
+### Added
+- **Helpers::OrdersHelper** (фасад ордеров): `buy_market`, `sell_market`, `buy_sliced`, `sell_sliced`, `cancel`, `get_state` — обёртки над OrdersService; логика разбиения объёма на части и нескольких рыночных заявок реализована внутри хелпера
+- В **Helpers::Facade** добавлен метод `orders` → OrdersHelper
+- **OrdersService** (unary): `PostOrder`, `PostOrderAsync`, `CancelOrder`, `GetOrderState`, `GetOrders`, `ReplaceOrder`, `GetMaxLots`, `GetOrderPrice` (`Client#orders`)
+- Удобные методы для async/idempotency сценариев: `get_order_state_by_request_id`, `cancel_order_by_request_id`
+- **OrdersStreamService** (server-side streams): `OrderStateStream`, `TradesStream` (`Client#orders_stream`)
+- Клиентские stream-шорткаты для ордеров: `Client#stream_order_states`, `Client#stream_order_trades`
+- Тесты для orders unary/service stream/facade и интеграция в `Client`
+
+### Changed
+- README: добавлены разделы `OrdersService` и `Orders Streaming` с примерами и API-нюансами
+
 ## [0.2.3] - 2026-02-27
 
 ### Added

@@ -40,6 +40,9 @@ module Tinkoff
                 # PayIn — пополнение брокерского счета
                 # Пополнить брокерский счёт с банковского
                 rpc :PayIn, ::Tinkoff::Public::Invest::Api::Contract::V1::PayInRequest, ::Tinkoff::Public::Invest::Api::Contract::V1::PayInResponse
+                # GetAccountValues — дополнительные показатели счетов
+                # Метод предназначен для получения дополнительных показателей счетов
+                rpc :GetAccountValues, ::Tinkoff::Public::Invest::Api::Contract::V1::GetAccountValuesRequest, ::Tinkoff::Public::Invest::Api::Contract::V1::GetAccountValuesResponse
               end
 
               Stub = Service.rpc_stub_class

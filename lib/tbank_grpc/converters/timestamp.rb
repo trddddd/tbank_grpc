@@ -5,11 +5,11 @@ module TbankGrpc
     # Преобразование proto Timestamp ↔ Time.
     module Timestamp
       # @param timestamp [Google::Protobuf::Timestamp, nil]
-      # @return [Time, nil] локальное время или nil при ошибке парсинга
+      # @return [Time, nil] UTC или nil при ошибке парсинга
       def self.to_time(timestamp)
         return unless timestamp
 
-        Time.at(timestamp.seconds, timestamp.nanos / 1000.0)
+        Time.at(timestamp.seconds, timestamp.nanos / 1000.0).utc
       rescue StandardError => e
         TbankGrpc.logger&.warn('Failed to parse timestamp', error: e.message)
         nil

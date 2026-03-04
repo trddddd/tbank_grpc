@@ -201,10 +201,12 @@ RSpec.describe TbankGrpc::Services::OperationsService do
       )
     end
 
-    it 'returns GetOperationsByCursorResponse (proto)' do
+    it 'returns OperationsByCursorPage model' do
       result = service.get_operations_by_cursor(account_id: 'acc-1')
 
-      expect(result).to eq(response)
+      expect(result).to be_a(TbankGrpc::Models::Operations::OperationsByCursorPage)
+      expect(result.has_next).to be(false)
+      expect(result.items).to eq([])
     end
 
     it 'returns Response with data and metadata when return_metadata: true' do

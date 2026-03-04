@@ -97,7 +97,7 @@ module TbankGrpc
       # @param without_trades [Boolean, nil]
       # @param without_overnights [Boolean, nil]
       # @param return_metadata [Boolean]
-      # @return [Tinkoff::...::GetOperationsByCursorResponse, Response]
+      # @return [Models::Operations::OperationsByCursorPage, Response]
       # rubocop:disable Metrics/ParameterLists, Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/MethodLength
       def get_operations_by_cursor(
         account_id:,
@@ -143,6 +143,7 @@ module TbankGrpc
         execute_rpc(
           method_name: :get_operations_by_cursor,
           request: request,
+          model: Models::Operations::OperationsByCursorPage,
           return_metadata: return_metadata
         )
       end

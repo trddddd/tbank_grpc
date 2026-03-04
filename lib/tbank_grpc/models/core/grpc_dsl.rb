@@ -81,14 +81,12 @@ module TbankGrpc
         end
 
         def inspectable_attrs_list
-          const_defined?(:INSPECTABLE_ATTRS, false) ? self::INSPECTABLE_ATTRS : []
+          @_inspectable_attrs || []
         end
 
         def inspectable_attrs(*extra)
           base = superclass.respond_to?(:inspectable_attrs_list, true) ? superclass.inspectable_attrs_list : []
-          value = (base + extra).uniq.freeze
-          remove_const(:INSPECTABLE_ATTRS) if const_defined?(:INSPECTABLE_ATTRS, false)
-          const_set(:INSPECTABLE_ATTRS, value)
+          @_inspectable_attrs = (base + extra).uniq.freeze
         end
 
         def grpc_alias(new_name, old_name)
